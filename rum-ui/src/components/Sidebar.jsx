@@ -25,7 +25,7 @@ export const Sidebar = ({ activeView, setActiveView }) => {
         {!isCollapsed && (
           <div className="flex items-center gap-2 flex-1">
             <p className='text-xl font-semibold text-[var(--text-primary)]'>
-              Performance<span className="text-indigo-500 font-bold">Monitor</span>
+              Web<span className="text-indigo-500 font-bold">Vizion</span>
             </p>
           </div>
         )}
@@ -82,7 +82,7 @@ export const Sidebar = ({ activeView, setActiveView }) => {
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 mb-2 rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
           title={isCollapsed ? (theme === 'dark' ? 'Light Mode' : 'Dark Mode') : ''}
         >
           <img
@@ -96,6 +96,20 @@ export const Sidebar = ({ activeView, setActiveView }) => {
             </span>
           )}
         </button>
+
+        {/* Demo App Link */}
+        <a
+          href="https://webvizion-demo.netlify.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition-colors border border-indigo-500/20"
+          title={isCollapsed ? 'Open Demo App' : ''}
+        >
+          <span className="text-base">🚀</span>
+          {!isCollapsed && (
+            <span className="text-sm font-medium">Demo App</span>
+          )}
+        </a>
       </div>
     </div>
   );

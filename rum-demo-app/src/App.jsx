@@ -10,7 +10,7 @@ function App() {
   useEffect(() => {
     // Initialize RUM SDK
     const rumInstance = new RUMWrapper({
-      apiUrl: 'http://localhost:8080/api/rum',
+      apiUrl: 'https://rumtest.onrender.com/api/rum',
       appName: 'Demo App',
       appVersion: '1.0.0',
       environment: 'development',
@@ -21,14 +21,14 @@ function App() {
 
     rumRef.current = rumInstance;
 
-      // Track initial page view
-      setTimeout(() => {
-        rumInstance.trackPageView({
-          pagePath: window.location.pathname,
-          pageTitle: document.title,
-        });
-        setEventCount(prev => prev + 1);
-      }, 100);
+    // Track initial page view
+    setTimeout(() => {
+      rumInstance.trackPageView({
+        pagePath: window.location.pathname,
+        pageTitle: document.title,
+      });
+      setEventCount(prev => prev + 1);
+    }, 100);
 
     // Measure page load time
     if (window.performance) {
@@ -181,11 +181,34 @@ function App() {
     }
   };
 
+  const trackDemoError = ({ message, errorType, severity }) => {
+    if (rumRef.current) {
+      rumRef.current.trackError({
+        message,
+        source: 'demo-app',
+        errorType,
+        severity,
+      });
+      setEventCount(prev => prev + 1);
+      alert(`${severity.toUpperCase()} severity error tracked!`);
+    }
+  };
+
   return (
     <div className="app">
       <header className="app-header">
-        <h1>🚀 RUM Demo Application</h1>
-        <p>This app demonstrates RUM SDK integration</p>
+        <h1>🚀 WebVizion Demo Application</h1>
+        <p>Real User Monitoring SDK Integration Demo</p>
+
+        {/* Demo Notice Banner */}
+        <div className="demo-notice">
+          <span className="demo-badge">⚠️ DEMO</span>
+          <p>
+            This is a <strong>demo application</strong> designed to simulate a real website.
+            All user interactions are being tracked and sent to the WebVizion dashboard.
+          </p>
+        </div>
+
         <div className="stats">
           <div className="stat-card">
             <span className="stat-label">Events Tracked</span>
@@ -195,10 +218,26 @@ function App() {
       </header>
 
       <main className="app-main">
+        {/* Dashboard CTA */}
+        <section className="dashboard-cta">
+          <div className="cta-content">
+            <h2>📊 View Live Dashboard</h2>
+            <p>See all tracked events, web vitals, errors, and performance metrics in real-time!</p>
+            <a
+              href="https://webvizion.netlify.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="dashboard-link primary"
+            >
+              🚀 Open WebVizion Dashboard →
+            </a>
+          </div>
+        </section>
+
         <section className="demo-section">
           <h2>Interactive Demo</h2>
           <p>Click the buttons below to generate RUM events that will appear in the dashboard.</p>
-          
+
           <div className="button-group">
             <button className="demo-button" onClick={handleButtonClick}>
               📊 Track User Action
@@ -211,60 +250,57 @@ function App() {
             </button>
           </div>
         </section>
+
         <section className="demo-section">
-  <h2>Error Generator (SDK Compatible)</h2>
-  <p>Generate errors with different severities and types.</p>
+          <h2>Error Generator (SDK Compatible)</h2>
+          <p>Generate errors with different severities and types.</p>
 
-  <div className="button-group">
-    {/* LOW */}
-    <button
-      className="demo-button"
-      onClick={() =>
-        trackDemoError({
-          message: 'Minor UI warning (low severity)',
-          errorType: 'javascript',
-          severity: 'low',
-        })
-      }
-    >
-      🟢 Low Severity Error
-    </button>
+          <div className="button-group">
+            <button
+              className="demo-button success"
+              onClick={() =>
+                trackDemoError({
+                  message: 'Minor UI warning (low severity)',
+                  errorType: 'javascript',
+                  severity: 'low',
+                })
+              }
+            >
+              🟢 Low Severity Error
+            </button>
 
-    {/* MEDIUM */}
-    <button
-      className="demo-button"
-      onClick={() =>
-        trackDemoError({
-          message: 'Deprecated API usage detected',
-          errorType: 'javascript',
-          severity: 'medium',
-        })
-      }
-    >
-      🟡 Medium Severity Error
-    </button>
+            <button
+              className="demo-button warning"
+              onClick={() =>
+                trackDemoError({
+                  message: 'Deprecated API usage detected',
+                  errorType: 'javascript',
+                  severity: 'medium',
+                })
+              }
+            >
+              🟡 Medium Severity Error
+            </button>
 
-    {/* HIGH */}
-    <button
-      className="demo-button error"
-      onClick={() =>
-        trackDemoError({
-          message: 'Unhandled exception in component',
-          errorType: 'unhandledRejection',
-          severity: 'high',
-        })
-      }
-    >
-      🔴 High Severity Error
-    </button>
-
-  </div>
-</section>
+            <button
+              className="demo-button error"
+              onClick={() =>
+                trackDemoError({
+                  message: 'Unhandled exception in component',
+                  errorType: 'unhandledRejection',
+                  severity: 'high',
+                })
+              }
+            >
+              🔴 High Severity Error
+            </button>
+          </div>
+        </section>
 
         <section className="demo-section">
           <h2>Navigation Demo</h2>
           <p>Navigate to different pages to track page views.</p>
-          
+
           <div className="button-group">
             <button className="demo-button" onClick={() => handleNavigate('/home')}>
               🏠 Home
@@ -291,27 +327,38 @@ function App() {
             <p>✅ User interactions are tracked</p>
           </div>
         </section>
-      
-        <section className="demo-section">
-          <h2>Dashboard Link</h2>
-          <p>Open the RUM Dashboard to see the tracked events in real-time.</p>
-          <a 
-            href="http://localhost:3000" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="dashboard-link"
-          >
-            📊 Open RUM Dashboard →
-          </a>
+
+        <section className="demo-section highlight">
+          <h2>🎯 About This Demo</h2>
+          <div className="about-demo">
+            <p>
+              This demo application simulates a real website to showcase the <strong>WebVizion RUM SDK</strong> capabilities.
+              Every button click, page navigation, and error is tracked and visible in the dashboard.
+            </p>
+            <ul>
+              <li>📈 <strong>Web Vitals</strong> - LCP, FCP, CLS metrics</li>
+              <li>⚡ <strong>Page Speed</strong> - Load times and performance</li>
+              <li>🐛 <strong>Error Tracking</strong> - JavaScript errors and exceptions</li>
+              <li>👤 <strong>User Sessions</strong> - Navigation and interaction tracking</li>
+            </ul>
+            <a
+              href="https://webvizion.netlify.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="dashboard-link"
+            >
+              📊 View Dashboard →
+            </a>
+          </div>
         </section>
       </main>
 
       <footer className="app-footer">
-        <p>RUM Demo App - Sending events to http://localhost:8080/api/rum</p>
+        <p>WebVizion Demo App - Sending events to rumtest.onrender.com</p>
+        <p className="footer-note">This is a demonstration app. Integrate the SDK into your real application to start monitoring!</p>
       </footer>
     </div>
   );
 }
 
 export default App;
-
