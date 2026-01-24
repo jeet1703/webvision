@@ -19,58 +19,41 @@ export const Sidebar = ({ activeView, setActiveView }) => {
   ];
 
   return (
-    <div className={`fixed left-0 top-0 h-full bg-[#18181b] border-r border-[#2d2d33] transition-all duration-300 z-50 ${isCollapsed ? 'w-16' : 'w-64'
-      }`}>
+    <div className={`fixed left-0 top-0 h-full bg-[var(--bg-secondary)] border-r border-[var(--border-color)] transition-all duration-200 z-50 ${isCollapsed ? 'w-16' : 'w-64'}`}>
       {/* Logo/Header */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-[#2d2d33]">
+      <div className="h-16 flex items-center justify-between px-4 border-b border-[var(--border-color)]">
         {!isCollapsed && (
           <div className="flex items-center gap-2 flex-1">
-            {/* <img
-              src="/logo.png"
-              alt="SEM Vitals"
-              className="h-full w-full  object-contain"
-            /> */}
-            <p className='text-center text-2xl'>SEM<span className="text-[#00aafe] font-bold text-center ">Vitals</span></p>
+            <p className='text-xl font-semibold text-[var(--text-primary)]'>
+              Performance<span className="text-indigo-500 font-bold">Monitor</span>
+            </p>
           </div>
         )}
         {isCollapsed && (
           <div className="flex items-center justify-center flex-1">
-            <img
-              src="/logo.png"
-              alt="SEM Vitals"
-              className="h-8 w-8 object-contain"
-            />
+            <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">PM</span>
+            </div>
           </div>
         )}
-          {/* <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-2 rounded hover:bg-[#2d2d33] text-gray-400 hover:text-[#d8d9da] transition-colors ml-2"
-            title={isCollapsed ? 'Expand' : 'Collapse'}
-          >
-            <img 
-              src={isCollapsed ? '/assets/icons/hamburg.svg' : '/assets/icons/chevron-left'} 
-              alt={isCollapsed ? 'Expand' : 'Collapse'} 
-              className="w-5 h-5" 
-            />
-          </button> */}
       </div>
 
       {/* Navigation Menu */}
-      <nav className="flex-1 overflow-y-auto py-4">
+      <nav className="flex-1 overflow-y-auto py-4 px-2">
         {menuItems.map((item) => (
           <button
             key={item.id}
             onClick={() => setActiveView(item.id)}
-            className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${activeView === item.id
-                ? 'bg-blue-600/20 text-blue-400 border-r-2 border-blue-500'
-                : 'text-gray-400 hover:bg-[#2d2d33] hover:text-[#d8d9da]'
+            className={`w-full flex items-center gap-3 px-3 py-2.5 mb-1 rounded-lg text-left transition-colors ${activeView === item.id
+              ? 'bg-indigo-500/15 text-indigo-400 border-l-2 border-indigo-500'
+              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
               }`}
             title={isCollapsed ? item.label : ''}
           >
-            <img 
-              src={`/assets/icons/${item.icon}`} 
-              alt={item.label} 
-              className="w-10 h-10 flex-shrink-0" 
+            <img
+              src={`/assets/icons/${item.icon}`}
+              alt={item.label}
+              className="w-5 h-5 flex-shrink-0 opacity-80"
             />
             {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}
           </button>
@@ -78,17 +61,17 @@ export const Sidebar = ({ activeView, setActiveView }) => {
       </nav>
 
       {/* Footer Controls */}
-      <div className="border-t border-[#2d2d33] p-4 space-y-2">
+      <div className="p-3 border-t border-[var(--border-color)]">
         {/* Live Mode Toggle */}
         <button
           onClick={toggleLiveMode}
-          className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${isLive
-              ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-              : 'bg-[#2d2d33] text-gray-400 hover:bg-[#3d3d44]'
+          className={`w-full flex items-center gap-3 px-3 py-2.5 mb-2 rounded-lg transition-colors ${isLive
+            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+            : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           title={isCollapsed ? (isLive ? 'Live Mode On' : 'Live Mode Off') : ''}
         >
-          <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-blue-400 animate-pulse' : 'bg-gray-500'}`}></div>
+          <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'}`}></div>
           {!isCollapsed && (
             <span className="text-sm font-medium">
               {isLive ? 'Live Mode' : 'Paused'}
@@ -97,24 +80,23 @@ export const Sidebar = ({ activeView, setActiveView }) => {
         </button>
 
         {/* Theme Toggle */}
-        {/* <button
+        <button
           onClick={toggleTheme}
-          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg bg-[#2d2d33] text-gray-400 hover:bg-[#3d3d44] hover:text-[#d8d9da] transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
           title={isCollapsed ? (theme === 'dark' ? 'Light Mode' : 'Dark Mode') : ''}
         >
-          <img 
-            src={theme === 'dark' ? '/assets/icons/sun.svg' : '/assets/icons/moon.svg'} 
-            alt={theme === 'dark' ? 'Light Mode' : 'Dark Mode'} 
-            className="w-5 h-5" 
+          <img
+            src={theme === 'dark' ? '/assets/icons/sun.svg' : '/assets/icons/moon.svg'}
+            alt={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            className="w-5 h-5 opacity-80"
           />
           {!isCollapsed && (
             <span className="text-sm font-medium">
               {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
             </span>
           )}
-        </button> */}
+        </button>
       </div>
     </div>
   );
 };
-

@@ -20,58 +20,59 @@ export const SettingsView = () => {
       <div className="p-6 max-w-4xl">
         <div className="space-y-6">
           {/* Theme Settings */}
-          <div className="bg-[#1f1f23] border border-[#2d2d33] rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-[#d8d9da] mb-4">Appearance</h3>
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Appearance</h3>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-[#d8d9da] font-medium">Theme</p>
-                <p className="text-xs text-gray-500 mt-1">Choose between light and dark mode</p>
+                <p className="text-sm text-[var(--text-primary)] font-medium">Theme</p>
+                <p className="text-xs text-[var(--text-tertiary)] mt-1">
+                  Currently using {theme === 'dark' ? 'Dark' : 'Light'} mode
+                </p>
               </div>
               <button
                 onClick={toggleTheme}
-                className="px-4 py-2 bg-[#2d2d33] hover:bg-[#3d3d44] rounded-lg text-sm font-medium text-[#d8d9da] transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-[var(--bg-tertiary)] hover:bg-[var(--border-color)] rounded-lg text-sm font-medium text-[var(--text-primary)] transition-colors flex items-center gap-2"
               >
-                <img 
-                  src={theme === 'dark' ? '/assets/icons/moon.svg' : '/assets/icons/sun.svg'} 
-                  alt={theme === 'dark' ? 'Dark' : 'Light'} 
+                <img
+                  src={theme === 'dark' ? '/assets/icons/sun.svg' : '/assets/icons/moon.svg'}
+                  alt={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                   className="w-5 h-5"
                 />
-                <span>{theme === 'dark' ? 'Dark' : 'Light'}</span>
+                <span>Switch to {theme === 'dark' ? 'Light' : 'Dark'}</span>
               </button>
             </div>
           </div>
 
           {/* Live Mode Settings */}
-          <div className="bg-[#1f1f23] border border-[#2d2d33] rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-[#d8d9da] mb-4">Live Updates</h3>
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Live Updates</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-[#d8d9da] font-medium">Live Mode</p>
-                  <p className="text-xs text-gray-500 mt-1">Automatically refresh data</p>
+                  <p className="text-sm text-[var(--text-primary)] font-medium">Live Mode</p>
+                  <p className="text-xs text-[var(--text-tertiary)] mt-1">Automatically refresh data</p>
                 </div>
                 <button
                   onClick={toggleLiveMode}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                    isLive
-                      ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                      : 'bg-[#2d2d33] text-gray-400 hover:bg-[#3d3d44]'
-                  }`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${isLive
+                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                    : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--border-color)]'
+                    }`}
                 >
-                  <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-blue-400 animate-pulse' : 'bg-gray-500'}`}></div>
+                  <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'}`}></div>
                   <span>{isLive ? 'Enabled' : 'Disabled'}</span>
                 </button>
               </div>
               {isLive && (
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-[#d8d9da] font-medium">Refresh Interval</p>
-                    <p className="text-xs text-gray-500 mt-1">How often to update data</p>
+                    <p className="text-sm text-[var(--text-primary)] font-medium">Refresh Interval</p>
+                    <p className="text-xs text-[var(--text-tertiary)] mt-1">How often to update data</p>
                   </div>
                   <select
                     value={refreshInterval}
                     onChange={(e) => updateRefreshInterval(Number(e.target.value))}
-                    className="px-4 py-2 bg-[#2d2d33] border border-[#3d3d44] rounded-lg text-sm text-[#d8d9da] focus:outline-none focus:border-blue-500"
+                    className="px-4 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
                   >
                     {refreshOptions.map(option => (
                       <option key={option.value} value={option.value}>
@@ -85,18 +86,18 @@ export const SettingsView = () => {
           </div>
 
           {/* API Settings */}
-          <div className="bg-[#1f1f23] border border-[#2d2d33] rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-[#d8d9da] mb-4">API Configuration</h3>
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">API Configuration</h3>
             <div className="space-y-3">
               <div>
-                <label className="text-sm text-gray-400 block mb-1">API Base URL</label>
+                <label className="text-sm text-[var(--text-secondary)] block mb-1">API Base URL</label>
                 <input
                   type="text"
                   defaultValue="http://localhost:8080/api/rum"
-                  className="w-full px-4 py-2 bg-[#2d2d33] border border-[#3d3d44] rounded-lg text-sm text-[#d8d9da] focus:outline-none focus:border-blue-500"
+                  className="w-full px-4 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
                   readOnly
                 />
-                <p className="text-xs text-gray-500 mt-1">Configure in apiService.js</p>
+                <p className="text-xs text-[var(--text-tertiary)] mt-1">Configure in apiService.js</p>
               </div>
             </div>
           </div>
@@ -105,4 +106,3 @@ export const SettingsView = () => {
     </div>
   );
 };
-

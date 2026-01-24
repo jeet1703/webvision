@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { rumAPI } from '../services/apiService';
 import { useLiveMode } from '../contexts/LiveModeContext';
 
 export const useRUMData = (timeRangeMs = 3600000) => { // 1 hour default
   const { isLive, refreshInterval } = useLiveMode();
+  const isFirstLoad = useRef(true);
   const [data, setData] = useState({
     webVitals: [],
     errors: [],
@@ -19,16 +20,19 @@ export const useRUMData = (timeRangeMs = 3600000) => { // 1 hour default
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setData(prev => ({ ...prev, loading: true, error: null }));
-        
+        // Only show loading on first load, not on refreshes
+        if (isFirstLoad.current) {
+          setData(prev => ({ ...prev, loading: true, error: null }));
+        }
+
         const endTime = Date.now();
         const startTime = endTime - timeRangeMs;
 
         const [
-          vitalsRes, 
-          errorsRes, 
-          pageViewsRes, 
-          pageSpeedRes, 
+          vitalsRes,
+          errorsRes,
+          pageViewsRes,
+          pageSpeedRes,
           pageSpeedStatsRes,
           statsRes
         ] = await Promise.all([
@@ -51,6 +55,8 @@ export const useRUMData = (timeRangeMs = 3600000) => { // 1 hour default
           error: null,
           lastUpdate: new Date(),
         });
+
+        isFirstLoad.current = false;
       } catch (err) {
         setData(prev => ({
           ...prev,
@@ -61,7 +67,7 @@ export const useRUMData = (timeRangeMs = 3600000) => { // 1 hour default
     };
 
     fetchData();
-    
+
     // Refetch based on live mode and refresh interval
     if (isLive) {
       const interval = setInterval(fetchData, refreshInterval);
@@ -71,4 +77,3 @@ export const useRUMData = (timeRangeMs = 3600000) => { // 1 hour default
 
   return data;
 };
-

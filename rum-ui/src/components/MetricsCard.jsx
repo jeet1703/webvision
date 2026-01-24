@@ -5,24 +5,24 @@ export const MetricsCard = ({
   value,
   unit = '',
   status = 'good',
-  iconSrc = null,   // <-- SVG / image path
+  iconSrc = null,
   trend = null
 }) => {
   const statusConfig = {
     good: {
-      border: 'border-blue-500/30',
-      text: 'text-blue-400',
-      bg: 'bg-blue-500/5',
+      border: 'border-emerald-500/30',
+      text: 'text-emerald-400',
+      bg: 'bg-emerald-500/10',
     },
     'needs-improvement': {
-      border: 'border-yellow-500/30',
-      text: 'text-yellow-400',
-      bg: 'bg-yellow-500/5',
+      border: 'border-amber-500/30',
+      text: 'text-amber-400',
+      bg: 'bg-amber-500/10',
     },
     poor: {
       border: 'border-red-500/30',
       text: 'text-red-400',
-      bg: 'bg-red-500/5',
+      bg: 'bg-red-500/10',
     },
   };
 
@@ -31,20 +31,20 @@ export const MetricsCard = ({
   return (
     <div
       className={`relative bg-[var(--bg-secondary)] border border-[var(--border-color)]
-      ${config.border} rounded-xl p-5 hover:border-opacity-70 transition-all duration-300 
-      shadow-lg hover:shadow-xl hover:-translate-y-1`}
+      ${config.border} rounded-xl p-5 hover:border-opacity-70 transition-all duration-200 
+      shadow-sm hover:shadow-md hover:-translate-y-0.5`}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-xs font-medium text-[var(--text-tertiary)] mb-2 uppercase tracking-wide">
+          <p className="text-xs font-semibold text-[var(--text-tertiary)] mb-2 uppercase tracking-wider">
             {title}
           </p>
 
           <div className="flex items-baseline gap-2">
             <p className={`text-3xl font-bold ${config.text}`}>
               {typeof value === 'number'
-                ? value.toFixed(value < 1 ? 2 : 0)
-                : value}
+                ? (value === 0 ? '0' : value < 1 && value > 0 ? value.toFixed(2) : value.toFixed(0))
+                : (value ?? '0')}
             </p>
 
             {unit && (
@@ -55,10 +55,10 @@ export const MetricsCard = ({
           </div>
 
           {trend !== null && (
-            <p className={`text-xs mt-2 ${config.text} opacity-70 flex items-center gap-1`}>
-              <img 
-                src={trend > 0 ? "/assets/icons/arrow-up.svg" : "/assets/icons/arrow-down.svg"} 
-                alt={trend > 0 ? "Up" : "Down"} 
+            <p className={`text-xs mt-2 ${config.text} opacity-80 flex items-center gap-1`}>
+              <img
+                src={trend > 0 ? "/assets/icons/arrow-up.svg" : "/assets/icons/arrow-down.svg"}
+                alt={trend > 0 ? "Up" : "Down"}
                 className="w-3 h-3 inline"
               />
               {Math.abs(trend)}%
@@ -68,7 +68,7 @@ export const MetricsCard = ({
 
         {/* ICON */}
         {iconSrc && (
-          <div className={`${config.bg} p-2 rounded`}>
+          <div className={`${config.bg} p-2.5 rounded-lg`}>
             <img
               src={iconSrc}
               alt={title}

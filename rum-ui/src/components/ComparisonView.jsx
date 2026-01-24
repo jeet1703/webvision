@@ -254,12 +254,12 @@ export const ComparisonView = () => {
 
       <div className="max-w-[1920px] mx-auto px-6 py-6">
         {/* API Configuration */}
-        <div className="bg-[#1f1f23] border border-[#2d2d33] rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold text-[#d8d9da] mb-4">Configure APIs to Compare</h2>
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-6 mb-6">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Configure APIs to Compare</h2>
           
           {/* API 1 Configuration */}
-          <div className="mb-6 p-4 bg-[#18181b] border border-[#2d2d33] rounded-lg">
-            <label className="block text-sm font-semibold text-[#d8d9da] mb-3">API 1</label>
+          <div className="mb-6 p-4 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-lg">
+            <label className="block text-sm font-semibold text-[var(--text-primary)] mb-3">API 1</label>
             <div className="space-y-4">
               {/* URL and Method */}
               <div className="flex gap-3">
@@ -268,12 +268,12 @@ export const ComparisonView = () => {
                   value={api1.url}
                   onChange={(e) => setApi1({ ...api1, url: e.target.value })}
                   placeholder="Enter API URL (e.g., https://api.example.com/endpoint)"
-                  className="flex-1 px-4 py-2 bg-[#1f1f23] border border-[#2d2d33] rounded-lg text-[#d8d9da] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <select
                   value={api1.method}
                   onChange={(e) => setApi1({ ...api1, method: e.target.value })}
-                  className="px-4 py-2 bg-[#1f1f23] border border-[#2d2d33] rounded-lg text-[#d8d9da] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="GET">GET</option>
                   <option value="POST">POST</option>
@@ -310,7 +310,7 @@ export const ComparisonView = () => {
                           setApi1({ ...api1, headers: newHeaders });
                         }}
                         placeholder="Header name (e.g., Authorization)"
-                        className="flex-1 px-3 py-2 bg-[#1f1f23] border border-[#2d2d33] rounded text-[#d8d9da] placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-[var(--text-primary)] placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       <input
                         type="text"
@@ -321,7 +321,7 @@ export const ComparisonView = () => {
                           setApi1({ ...api1, headers: newHeaders });
                         }}
                         placeholder="Header value"
-                        className="flex-1 px-3 py-2 bg-[#1f1f23] border border-[#2d2d33] rounded text-[#d8d9da] placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-[var(--text-primary)] placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       {api1.headers.length > 1 && (
                         <button
@@ -348,7 +348,7 @@ export const ComparisonView = () => {
                     <select
                       value={api1.bodyType}
                       onChange={(e) => setApi1({ ...api1, bodyType: e.target.value })}
-                      className="px-3 py-1 bg-[#1f1f23] border border-[#2d2d33] rounded text-[#d8d9da] text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-3 py-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="json">JSON</option>
                       <option value="text">Text</option>
@@ -359,7 +359,7 @@ export const ComparisonView = () => {
                     onChange={(e) => setApi1({ ...api1, body: e.target.value })}
                     placeholder={api1.bodyType === 'json' ? '{"key": "value"}' : 'Request body text'}
                     rows="6"
-                    className={`w-full px-4 py-2 bg-[#1f1f23] border border-[#2d2d33] rounded-lg text-[#d8d9da] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm ${
+                    className={`w-full px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm ${
                       api1.bodyType === 'json' && api1.body ? 
                         (() => {
                           try {
@@ -399,8 +399,8 @@ export const ComparisonView = () => {
           </div>
 
           {/* API 2 Configuration */}
-          <div className="mb-6 p-4 bg-[#18181b] border border-[#2d2d33] rounded-lg">
-            <label className="block text-sm font-semibold text-[#d8d9da] mb-3">API 2 (Optional)</label>
+          <div className="mb-6 p-4 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-lg">
+            <label className="block text-sm font-semibold text-[var(--text-primary)] mb-3">API 2 (Optional)</label>
             <div className="space-y-4">
               {/* URL and Method */}
               <div className="flex gap-3">
@@ -409,12 +409,12 @@ export const ComparisonView = () => {
                   value={api2.url}
                   onChange={(e) => setApi2({ ...api2, url: e.target.value })}
                   placeholder="Enter API URL (e.g., https://api.example.com/endpoint)"
-                  className="flex-1 px-4 py-2 bg-[#1f1f23] border border-[#2d2d33] rounded-lg text-[#d8d9da] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <select
                   value={api2.method}
                   onChange={(e) => setApi2({ ...api2, method: e.target.value })}
-                  className="px-4 py-2 bg-[#1f1f23] border border-[#2d2d33] rounded-lg text-[#d8d9da] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="GET">GET</option>
                   <option value="POST">POST</option>
@@ -451,7 +451,7 @@ export const ComparisonView = () => {
                           setApi2({ ...api2, headers: newHeaders });
                         }}
                         placeholder="Header name (e.g., Authorization)"
-                        className="flex-1 px-3 py-2 bg-[#1f1f23] border border-[#2d2d33] rounded text-[#d8d9da] placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-[var(--text-primary)] placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       <input
                         type="text"
@@ -462,7 +462,7 @@ export const ComparisonView = () => {
                           setApi2({ ...api2, headers: newHeaders });
                         }}
                         placeholder="Header value"
-                        className="flex-1 px-3 py-2 bg-[#1f1f23] border border-[#2d2d33] rounded text-[#d8d9da] placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-[var(--text-primary)] placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       {api2.headers.length > 1 && (
                         <button
@@ -489,7 +489,7 @@ export const ComparisonView = () => {
                     <select
                       value={api2.bodyType}
                       onChange={(e) => setApi2({ ...api2, bodyType: e.target.value })}
-                      className="px-3 py-1 bg-[#1f1f23] border border-[#2d2d33] rounded text-[#d8d9da] text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-3 py-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="json">JSON</option>
                       <option value="text">Text</option>
@@ -500,7 +500,7 @@ export const ComparisonView = () => {
                     onChange={(e) => setApi2({ ...api2, body: e.target.value })}
                     placeholder={api2.bodyType === 'json' ? '{"key": "value"}' : 'Request body text'}
                     rows="6"
-                    className={`w-full px-4 py-2 bg-[#1f1f23] border border-[#2d2d33] rounded-lg text-[#d8d9da] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm ${
+                    className={`w-full px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm ${
                       api2.bodyType === 'json' && api2.body ? 
                         (() => {
                           try {
@@ -548,7 +548,7 @@ export const ComparisonView = () => {
               max="10"
               value={testIterations}
               onChange={(e) => setTestIterations(parseInt(e.target.value) || 1)}
-              className="w-20 px-3 py-1 bg-[#18181b] border border-[#2d2d33] rounded text-[#d8d9da] focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-20 px-3 py-1 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <span className="text-xs text-gray-500">(Higher iterations = more accurate averages)</span>
           </div>
@@ -627,41 +627,41 @@ export const ComparisonView = () => {
             </div>
 
             {/* Comparison Table */}
-            <div className="bg-[#1f1f23] border border-[#2d2d33] rounded-lg overflow-hidden mb-6">
+            <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg overflow-hidden mb-6">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-[#18181b] border-b border-[#2d2d33]">
+                  <thead className="bg-[var(--bg-tertiary)] border-b border-[var(--border-color)]">
                     <tr>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-[#d8d9da] sticky left-0 bg-[#18181b] z-10 min-w-[200px]">
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-[var(--text-primary)] sticky left-0 bg-[var(--bg-tertiary)] z-10 min-w-[200px]">
                         API
                       </th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-[#d8d9da]">Method</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-[#d8d9da]">Status Code</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-[#d8d9da]">Success Rate (%)</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-[#d8d9da]">Avg Response Time (ms)</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-[#d8d9da]">Min Response Time</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-[#d8d9da]">Max Response Time</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-[#d8d9da]">Avg Request Duration (ms)</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-[#d8d9da]">Avg Response Size</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-[#d8d9da]">Success/Total</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-[#d8d9da]">Response</th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-[var(--text-primary)]">Method</th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-[var(--text-primary)]">Status Code</th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-[var(--text-primary)]">Success Rate (%)</th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-[var(--text-primary)]">Avg Response Time (ms)</th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-[var(--text-primary)]">Min Response Time</th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-[var(--text-primary)]">Max Response Time</th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-[var(--text-primary)]">Avg Request Duration (ms)</th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-[var(--text-primary)]">Avg Response Size</th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-[var(--text-primary)]">Success/Total</th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-[var(--text-primary)]">Response</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#2d2d33]">
+                  <tbody className="divide-y divide-[var(--border-color)]">
                     {testResults.map((result, index) => (
                       <tr
                         key={result.url}
-                        className={`hover:bg-[#2d2d33]/50 transition-colors ${
-                          index % 2 === 0 ? 'bg-[#1f1f23]' : 'bg-[#18181b]'
+                        className={`hover:bg-[var(--border-color)]/50 transition-colors ${
+                          index % 2 === 0 ? 'bg-[var(--bg-secondary)]' : 'bg-[var(--bg-tertiary)]'
                         }`}
                       >
-                        <td className="px-6 py-4 text-sm text-[#d8d9da] sticky left-0 bg-inherit z-10">
+                        <td className="px-6 py-4 text-sm text-[var(--text-primary)] sticky left-0 bg-inherit z-10">
                           <div className="font-semibold mb-1">{result.label}</div>
                           <div className="font-mono text-xs text-gray-400 truncate max-w-[300px]" title={result.url}>
                             {result.url.length > 50 ? `${result.url.substring(0, 47)}...` : result.url}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-center text-sm text-[#d8d9da] font-medium">
+                        <td className="px-6 py-4 text-center text-sm text-[var(--text-primary)] font-medium">
                           <span className={`px-2 py-1 rounded ${
                             result.method === 'GET' ? 'bg-blue-500/20 text-blue-400' :
                             result.method === 'POST' ? 'bg-blue-500/20 text-blue-400' :
@@ -721,10 +721,10 @@ export const ComparisonView = () => {
                         <td className="px-6 py-4 text-center text-sm text-gray-400">
                           {result.metrics.maxResponseTime.toFixed(0)}
                         </td>
-                        <td className="px-6 py-4 text-center text-sm text-[#d8d9da]">
+                        <td className="px-6 py-4 text-center text-sm text-[var(--text-primary)]">
                           {result.metrics.avgRequestDuration.toFixed(0)}
                         </td>
-                        <td className="px-6 py-4 text-center text-sm text-[#d8d9da]">
+                        <td className="px-6 py-4 text-center text-sm text-[var(--text-primary)]">
                           {result.metrics.avgResponseSize > 0
                             ? (result.metrics.avgResponseSize / 1024).toFixed(2) + ' KB'
                             : 'N/A'}
@@ -764,15 +764,15 @@ export const ComparisonView = () => {
             {/* Response Viewer Modal */}
             {selectedResponse && (
               <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedResponse(null)}>
-                <div className="bg-[#1f1f23] border border-[#2d2d33] rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-                  <div className="px-6 py-4 border-b border-[#2d2d33] bg-[#18181b] flex items-center justify-between">
+                <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+                  <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-tertiary)] flex items-center justify-between">
                     <div>
-                      <h3 className="text-lg font-semibold text-[#d8d9da]">{selectedResponse.label}</h3>
+                      <h3 className="text-lg font-semibold text-[var(--text-primary)]">{selectedResponse.label}</h3>
                       <p className="text-xs text-gray-400 mt-1">{selectedResponse.url}</p>
                     </div>
                     <button
                       onClick={() => setSelectedResponse(null)}
-                      className="text-gray-400 hover:text-[#d8d9da] transition-colors"
+                      className="text-gray-400 hover:text-[var(--text-primary)] transition-colors"
                     >
                       <img src="/assets/icons/cross.svg" alt="Close" className="w-5 h-5" />
                     </button>
@@ -780,7 +780,7 @@ export const ComparisonView = () => {
                   <div className="flex-1 overflow-y-auto p-6">
                     <div className="space-y-4">
                       {selectedResponse.results.map((res, idx) => (
-                        <div key={idx} className="bg-[#18181b] border border-[#2d2d33] rounded-lg p-4">
+                        <div key={idx} className="bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-lg p-4">
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
                               <span className={`px-2 py-1 rounded text-xs font-medium ${
@@ -803,7 +803,7 @@ export const ComparisonView = () => {
                           {res.responseHeaders && Object.keys(res.responseHeaders).length > 0 && (
                             <div className="mb-3">
                               <h4 className="text-xs font-semibold text-gray-400 mb-2 uppercase">Response Headers</h4>
-                              <div className="bg-[#0b0b0f] border border-[#2d2d33] rounded p-2 text-xs font-mono">
+                              <div className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded p-2 text-xs font-mono">
                                 {Object.entries(res.responseHeaders).map(([key, value]) => (
                                   <div key={key} className="text-gray-300">
                                     <span className="text-blue-400">{key}:</span> <span className="text-gray-400">{String(value)}</span>
@@ -821,7 +821,7 @@ export const ComparisonView = () => {
                                   {res.responseContentType} • {(res.responseSize / 1024).toFixed(2)} KB
                                 </span>
                               </div>
-                              <div className="bg-[#0b0b0f] border border-[#2d2d33] rounded p-3 overflow-x-auto">
+                              <div className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded p-3 overflow-x-auto">
                                 {res.responseContentType?.includes('application/json') ? (
                                   <pre className="text-xs text-gray-300 font-mono whitespace-pre-wrap">
                                     {(() => {
@@ -860,7 +860,7 @@ export const ComparisonView = () => {
 
             {/* Legend */}
             {testResults.length > 1 && (
-              <div className="bg-[#1f1f23] border border-[#2d2d33] rounded-lg p-4">
+              <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-4">
                 <p className="text-sm text-gray-400 flex items-center gap-4 flex-wrap">
                   <span className="flex items-center gap-1">
                     <img src="/assets/icons/trophy.svg" alt="Best" className="w-4 h-4" />
@@ -880,7 +880,7 @@ export const ComparisonView = () => {
         )}
 
         {!hasAtLeastOneApi && (
-          <div className="bg-[#1f1f23] border border-[#2d2d33] rounded-lg p-12 text-center">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-12 text-center">
             <p className="text-gray-400 text-lg">
               Configure at least one API above and click "Run Performance Tests" to see metrics.
             </p>

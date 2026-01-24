@@ -17,14 +17,14 @@ export const AnalyticsView = () => {
     errorRate: stats.totalPageViews > 0 ? (errors.length / stats.totalPageViews * 100) : 0,
     avgLCP: webVitals.filter(v => v.metricName === 'LCP').length > 0
       ? webVitals.filter(v => v.metricName === 'LCP')
-          .reduce((sum, v) => sum + v.value, 0) / webVitals.filter(v => v.metricName === 'LCP').length
+        .reduce((sum, v) => sum + v.value, 0) / webVitals.filter(v => v.metricName === 'LCP').length
       : 0,
   };
 
   return (
     <div className="min-h-screen">
-      <Header 
-        title="Analytics" 
+      <Header
+        title="Analytics"
         subtitle="Comprehensive RUM analytics and insights"
         timeRange={timeRange}
         setTimeRange={setTimeRange}
@@ -78,24 +78,24 @@ export const AnalyticsView = () => {
                 iconSrc="/assets/icons/graph.svg"
               />
             </div>
-            <div className="bg-[#1f1f23] border border-[#2d2d33] rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-[#d8d9da] mb-4">Performance Summary</h2>
+            <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Performance Summary</h2>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Total Events Collected</span>
-                  <span className="text-[#d8d9da] font-medium">{webVitals.length + errors.length + pageViews.length}</span>
+                  <span className="text-[var(--text-secondary)]">Total Events Collected</span>
+                  <span className="text-[var(--text-primary)] font-medium">{webVitals.length + errors.length + pageViews.length}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Web Vitals Events</span>
-                  <span className="text-[#d8d9da] font-medium">{webVitals.length}</span>
+                  <span className="text-[var(--text-secondary)]">Web Vitals Events</span>
+                  <span className="text-[var(--text-primary)] font-medium">{webVitals.length}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Error Events</span>
-                  <span className="text-[#d8d9da] font-medium">{errors.length}</span>
+                  <span className="text-[var(--text-secondary)]">Error Events</span>
+                  <span className="text-[var(--text-primary)] font-medium">{errors.length}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Page View Events</span>
-                  <span className="text-[#d8d9da] font-medium">{pageViews.length}</span>
+                  <span className="text-[var(--text-secondary)]">Page View Events</span>
+                  <span className="text-[var(--text-primary)] font-medium">{pageViews.length}</span>
                 </div>
               </div>
             </div>
@@ -105,4 +105,3 @@ export const AnalyticsView = () => {
     </div>
   );
 };
-

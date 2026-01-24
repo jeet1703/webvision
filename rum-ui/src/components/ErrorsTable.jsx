@@ -6,11 +6,11 @@ export const ErrorsTable = ({ errors }) => {
 
   if (!errors || errors.length === 0) {
     return (
-      <div className="bg-[#1f1f23] border border-[#2d2d33] rounded-lg p-8">
+      <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-8">
         <div className="text-center py-12">
           <img src="/assets/icons/checkmark.svg" alt="No errors" className="w-16 h-16 mx-auto mb-4 opacity-50" />
-          <p className="text-gray-400 text-sm">No errors recorded</p>
-          <p className="text-gray-500 text-xs mt-2">
+          <p className="text-[var(--text-secondary)] text-sm">No errors recorded</p>
+          <p className="text-[var(--text-tertiary)] text-xs mt-2">
             Great! Your application is error-free
           </p>
         </div>
@@ -58,15 +58,15 @@ export const ErrorsTable = ({ errors }) => {
   };
 
   return (
-    <div className="bg-[#1f1f23] border border-[#2d2d33] rounded-lg overflow-hidden">
-      <div className="px-6 py-4 border-b border-[#2d2d33] bg-[#18181b]">
+    <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg overflow-hidden">
+      <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-tertiary)]">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-[#d8d9da] flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
               <img src="/assets/icons/error.svg" alt="Errors" className="w-5 h-5" />
               Error Details
             </h2>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-[var(--text-tertiary)] mt-1">
               Detailed error information captured by SDK
             </p>
           </div>
@@ -78,46 +78,45 @@ export const ErrorsTable = ({ errors }) => {
 
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-[#18181b] border-b border-[#2d2d33]">
+          <thead className="bg-[var(--bg-tertiary)] border-b border-[var(--border-color)]">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
                 Message
               </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              <th className="px-6 py-3 text-center text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
                 Type
               </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              <th className="px-6 py-3 text-center text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
                 Severity
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
                 Source
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
                 Page URL
               </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              <th className="px-6 py-3 text-center text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
                 Timestamp
               </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              <th className="px-6 py-3 text-center text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
                 Details
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#2d2d33]">
+          <tbody className="divide-y divide-[var(--border-color)]">
             {errors.map((error, index) => {
               const isExpanded = expandedRow === index;
               const breadcrumbs = parseBreadcrumbs(error.breadcrumbs);
-              
+
               return (
                 <React.Fragment key={error.id || index}>
-                  <tr 
-                    className={`hover:bg-[#18181b] transition-colors cursor-pointer ${
-                      index % 2 === 0 ? 'bg-[#1f1f23]' : 'bg-[#18181b]'
-                    }`}
+                  <tr
+                    className={`hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer ${index % 2 === 0 ? 'bg-[var(--bg-secondary)]' : 'bg-[var(--bg-tertiary)]'
+                      }`}
                     onClick={() => setExpandedRow(isExpanded ? null : index)}
                   >
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-[#d8d9da] max-w-md truncate" title={error.message}>
+                      <div className="text-sm font-medium text-[var(--text-primary)] max-w-md truncate" title={error.message}>
                         {error.message || 'No message'}
                       </div>
                     </td>
@@ -132,12 +131,12 @@ export const ErrorsTable = ({ errors }) => {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-xs text-gray-400 font-mono max-w-xs truncate" title={error.source}>
+                      <div className="text-xs text-[var(--text-secondary)] font-mono max-w-xs truncate" title={error.source}>
                         {error.source ? (
                           <>
                             {error.source}
                             {(error.lineno || error.colno) && (
-                              <span className="text-gray-500 ml-1">
+                              <span className="text-[var(--text-tertiary)] ml-1">
                                 :{error.lineno}:{error.colno}
                               </span>
                             )}
@@ -146,12 +145,12 @@ export const ErrorsTable = ({ errors }) => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-xs text-gray-400 max-w-xs truncate" title={error.pageUrl}>
+                      <div className="text-xs text-[var(--text-secondary)] max-w-xs truncate" title={error.pageUrl}>
                         {error.pageUrl || 'N/A'}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-center text-xs text-gray-400">
-                      {error.eventTimestamp || error.createdAt 
+                    <td className="px-6 py-4 text-center text-xs text-[var(--text-secondary)]">
+                      {error.eventTimestamp || error.createdAt
                         ? format(new Date(error.eventTimestamp || error.createdAt), 'MMM dd, HH:mm:ss')
                         : 'N/A'}
                     </td>
@@ -162,14 +161,14 @@ export const ErrorsTable = ({ errors }) => {
                     </td>
                   </tr>
                   {isExpanded && (
-                    <tr className="bg-[#18181b]">
+                    <tr className="bg-[var(--bg-tertiary)]">
                       <td colSpan="7" className="px-6 py-4">
                         <div className="space-y-4">
                           {/* Stack Trace */}
                           {error.stack && (
                             <div>
-                              <h4 className="text-xs font-semibold text-gray-400 mb-2 uppercase">Stack Trace</h4>
-                              <pre className="bg-[#0b0b0f] border border-[#2d2d33] rounded p-3 text-xs text-gray-300 overflow-x-auto font-mono">
+                              <h4 className="text-xs font-semibold text-[var(--text-secondary)] mb-2 uppercase">Stack Trace</h4>
+                              <pre className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded p-3 text-xs text-[var(--text-secondary)] overflow-x-auto font-mono">
                                 {error.stack}
                               </pre>
                             </div>
@@ -178,8 +177,8 @@ export const ErrorsTable = ({ errors }) => {
                           {/* Component Stack */}
                           {error.componentStack && (
                             <div>
-                              <h4 className="text-xs font-semibold text-gray-400 mb-2 uppercase">Component Stack</h4>
-                              <pre className="bg-[#0b0b0f] border border-[#2d2d33] rounded p-3 text-xs text-gray-300 overflow-x-auto font-mono">
+                              <h4 className="text-xs font-semibold text-[var(--text-secondary)] mb-2 uppercase">Component Stack</h4>
+                              <pre className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded p-3 text-xs text-[var(--text-secondary)] overflow-x-auto font-mono">
                                 {error.componentStack}
                               </pre>
                             </div>
@@ -188,29 +187,28 @@ export const ErrorsTable = ({ errors }) => {
                           {/* Breadcrumbs */}
                           {breadcrumbs.length > 0 && (
                             <div>
-                              <h4 className="text-xs font-semibold text-gray-400 mb-2 uppercase">
+                              <h4 className="text-xs font-semibold text-[var(--text-secondary)] mb-2 uppercase">
                                 Breadcrumbs ({breadcrumbs.length})
                               </h4>
                               <div className="space-y-2">
                                 {breadcrumbs.map((crumb, crumbIdx) => (
-                                  <div key={crumbIdx} className="bg-[#0b0b0f] border border-[#2d2d33] rounded p-2 text-xs">
+                                  <div key={crumbIdx} className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded p-2 text-xs">
                                     <div className="flex items-center gap-2 mb-1">
-                                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                                        crumb.type === 'navigation' ? 'bg-blue-500/20 text-blue-400' :
-                                        crumb.type === 'click' ? 'bg-green-500/20 text-green-400' :
-                                        crumb.type === 'console' ? 'bg-yellow-500/20 text-yellow-400' :
-                                        crumb.type === 'xhr' ? 'bg-purple-500/20 text-purple-400' :
-                                        'bg-gray-500/20 text-gray-400'
-                                      }`}>
+                                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${crumb.type === 'navigation' ? 'bg-blue-500/20 text-blue-400' :
+                                          crumb.type === 'click' ? 'bg-green-500/20 text-green-400' :
+                                            crumb.type === 'console' ? 'bg-yellow-500/20 text-yellow-400' :
+                                              crumb.type === 'xhr' ? 'bg-purple-500/20 text-purple-400' :
+                                                'bg-gray-500/20 text-gray-400'
+                                        }`}>
                                         {crumb.type}
                                       </span>
-                                      <span className="text-gray-500">
+                                      <span className="text-[var(--text-tertiary)]">
                                         {crumb.timestamp ? format(new Date(crumb.timestamp), 'HH:mm:ss.SSS') : ''}
                                       </span>
                                     </div>
-                                    <div className="text-gray-300">{crumb.message}</div>
+                                    <div className="text-[var(--text-secondary)]">{crumb.message}</div>
                                     {crumb.data && Object.keys(crumb.data).length > 0 && (
-                                      <div className="mt-1 text-gray-500 font-mono text-xs">
+                                      <div className="mt-1 text-[var(--text-tertiary)] font-mono text-xs">
                                         {JSON.stringify(crumb.data, null, 2)}
                                       </div>
                                     )}
@@ -223,17 +221,17 @@ export const ErrorsTable = ({ errors }) => {
                           {/* Additional Info */}
                           <div className="grid grid-cols-2 gap-4 text-xs">
                             <div>
-                              <span className="text-gray-400">Session ID:</span>
-                              <span className="text-gray-300 ml-2 font-mono">{error.sessionId || 'N/A'}</span>
+                              <span className="text-[var(--text-secondary)]">Session ID:</span>
+                              <span className="text-[var(--text-primary)] ml-2 font-mono">{error.sessionId || 'N/A'}</span>
                             </div>
                             <div>
-                              <span className="text-gray-400">User ID:</span>
-                              <span className="text-gray-300 ml-2 font-mono">{error.userId || 'N/A'}</span>
+                              <span className="text-[var(--text-secondary)]">User ID:</span>
+                              <span className="text-[var(--text-primary)] ml-2 font-mono">{error.userId || 'N/A'}</span>
                             </div>
                             {error.userAgent && (
                               <div className="col-span-2">
-                                <span className="text-gray-400">User Agent:</span>
-                                <span className="text-gray-300 ml-2 text-xs">{error.userAgent}</span>
+                                <span className="text-[var(--text-secondary)]">User Agent:</span>
+                                <span className="text-[var(--text-primary)] ml-2 text-xs">{error.userAgent}</span>
                               </div>
                             )}
                           </div>
@@ -250,4 +248,3 @@ export const ErrorsTable = ({ errors }) => {
     </div>
   );
 };
-
