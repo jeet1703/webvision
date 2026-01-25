@@ -2,8 +2,8 @@ name: Ping Backend Server
 
 on:
   schedule:
-    - cron: "*/5 * * * *"   # runs every 5 minutes
-  workflow_dispatch:        # allows manual run
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
 
 jobs:
   ping:
@@ -15,4 +15,10 @@ jobs:
 
       - name: Ping backend server
         run: |
-          curl -X GET https://rumtest.onrender.com/api/rum/health
+          echo "Pinging Render backend..."
+          curl -v -f \
+            --retry 3 \
+            --retry-delay 10 \
+            --max-time 120 \
+            https://rumtest.onrender.com/api/rum/health
+          echo "Ping successful!"
