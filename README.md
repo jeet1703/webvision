@@ -1,7 +1,5 @@
 # WebVizion - Real User Monitoring System
 
-![WebVizion Logo](logo.png)
-
 A comprehensive Real User Monitoring (RUM) system inspired by Grafana Faro, built to capture, analyze, and visualize real-time user experience metrics from web applications. Monitor everything from page load times to user interactions and errors - all in one unified dashboard.
 
 ## 🌐 Live Demos
