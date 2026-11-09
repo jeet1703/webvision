@@ -1,143 +1,123 @@
-import React, { useMemo } from 'react';
-import { format } from 'date-fns';
+import React, { useMemo, useState } from 'react';
+import { formatDistanceToNowStrict, format } from 'date-fns';
+import { Panel, EmptyState } from './ui/primitives';
+import { eventTime } from '../lib/metrics';
 
-export const SessionsTable = ({ webVitals, errors }) => {
-  const sessions = useMemo(() => {
-    const sessionMap = {};
-
-    webVitals.forEach(item => {
-      if (!sessionMap[item.sessionId]) {
-        sessionMap[item.sessionId] = {
-          sessionId: item.sessionId,
-          pageUrl: item.pageUrl,
-          vitalsCount: 0,
-          errorsCount: 0,
-          lastSeen: item.createdAt || item.eventTimestamp,
-        };
-      }
-      sessionMap[item.sessionId].vitalsCount += 1;
-      const lastSeen = item.createdAt || item.eventTimestamp;
-      if (new Date(lastSeen) > new Date(sessionMap[item.sessionId].lastSeen)) {
-        sessionMap[item.sessionId].lastSeen = lastSeen;
-      }
+export const buildSessions = (webVitals = [], errors = []) => {
+  const map = {};
+  const touch = (item, field) => {
+    if (!item.sessionId) return;
+    const t = eventTime(item);
+    const s = (map[item.sessionId] ||= {
+      sessionId: item.sessionId,
+      pageUrl: item.pageUrl,
+      pages: new Set(),
+      vitals: 0,
+      errors: 0,
+      first: t,
+      last: t,
     });
+    s[field] += 1;
+    if (item.pageUrl) s.pages.add(item.pageUrl);
+    if (t < s.first) s.first = t;
+    if (t > s.last) {
+      s.last = t;
+      s.pageUrl = item.pageUrl || s.pageUrl;
+    }
+  };
+  webVitals.forEach((v) => touch(v, 'vitals'));
+  errors.forEach((e) => touch(e, 'errors'));
+  return Object.values(map).sort((a, b) => b.last - a.last);
+};
 
-    errors.forEach(item => {
-      if (!sessionMap[item.sessionId]) {
-        sessionMap[item.sessionId] = {
-          sessionId: item.sessionId,
-          pageUrl: item.pageUrl,
-          vitalsCount: 0,
-          errorsCount: 0,
-          lastSeen: item.createdAt || item.eventTimestamp,
-        };
-      }
-      sessionMap[item.sessionId].errorsCount += 1;
-      const lastSeen = item.createdAt || item.eventTimestamp;
-      if (new Date(lastSeen) > new Date(sessionMap[item.sessionId].lastSeen)) {
-        sessionMap[item.sessionId].lastSeen = lastSeen;
-      }
-    });
-
-    return Object.values(sessionMap).sort(
-      (a, b) => new Date(b.lastSeen) - new Date(a.lastSeen)
-    );
-  }, [webVitals, errors]);
-
-  if (sessions.length === 0) {
-    return (
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-8">
-        <div className="text-center py-12">
-          <img src="/assets/icons/users.svg" alt="Users" className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-          <p className="text-[var(--text-secondary)] text-sm">No sessions data</p>
-          <p className="text-[var(--text-tertiary)] text-xs mt-2">User sessions will appear here</p>
-        </div>
-      </div>
-    );
+const pathOf = (url) => {
+  try {
+    return new URL(url).pathname;
+  } catch {
+    return url || '–';
   }
+};
+
+const duration = (ms) => {
+  if (!ms || ms < 1000) return '< 1s';
+  const s = Math.round(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  return m < 60 ? `${m}m ${s % 60}s` : `${Math.floor(m / 60)}h ${m % 60}m`;
+};
+
+export const SessionsTable = ({ webVitals, errors, pageSize = 10, title = 'Recent sessions' }) => {
+  const [page, setPage] = useState(0);
+  const sessions = useMemo(() => buildSessions(webVitals, errors), [webVitals, errors]);
+  const pages = Math.max(1, Math.ceil(sessions.length / pageSize));
+  const current = Math.min(page, pages - 1);
+  const rows = sessions.slice(current * pageSize, current * pageSize + pageSize);
 
   return (
-    <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg overflow-hidden">
-      <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-tertiary)]">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
-              <img src="/assets/icons/users.svg" alt="Users" className="w-5 h-5" />
-              User Sessions
-            </h2>
-            <p className="text-xs text-[var(--text-tertiary)] mt-1">Active user sessions and activity</p>
+    <Panel
+      title={title}
+      subtitle="Grouped by session ID, most recent activity first"
+      actions={<span className="chip num">{sessions.length} sessions</span>}
+    >
+      {sessions.length === 0 ? (
+        <EmptyState compact icon="sessions" title="No sessions in this range" />
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <table className="dtable">
+              <thead>
+                <tr>
+                  <th>Session</th>
+                  <th>Last page</th>
+                  <th className="r">Pages</th>
+                  <th className="r">Vitals</th>
+                  <th className="r">Errors</th>
+                  <th className="r">Duration</th>
+                  <th className="r">Last seen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((s) => (
+                  <tr key={s.sessionId}>
+                    <td>
+                      <span className="mono text-[12px] text-[var(--text-primary)]" title={s.sessionId}>
+                        {s.sessionId.length > 14 ? `${s.sessionId.slice(0, 14)}…` : s.sessionId}
+                      </span>
+                    </td>
+                    <td className="max-w-[280px]">
+                      <span className="block truncate" title={s.pageUrl}>{pathOf(s.pageUrl)}</span>
+                    </td>
+                    <td className="r">{s.pages.size}</td>
+                    <td className="r">{s.vitals}</td>
+                    <td className="r">
+                      {s.errors > 0 ? (
+                        <span className="chip chip-critical num">{s.errors}</span>
+                      ) : (
+                        <span className="text-[var(--text-muted)]">0</span>
+                      )}
+                    </td>
+                    <td className="r">{duration(s.last - s.first)}</td>
+                    <td className="r whitespace-nowrap" title={format(s.last, 'PPpp')}>
+                      {formatDistanceToNowStrict(s.last, { addSuffix: true })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div className="bg-blue-500/10 text-blue-400 px-3 py-1 rounded text-xs font-semibold border border-blue-500/30">
-            {sessions.length} Active
-          </div>
-        </div>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-[var(--bg-tertiary)] border-b border-[var(--border-color)]">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-                Session ID
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-                Page URL
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-                Vitals
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-                Errors
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-                Last Seen
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--border-color)]">
-            {sessions.slice(0, 10).map((session, index) => (
-              <tr
-                key={session.sessionId}
-                className="hover:bg-[var(--bg-tertiary)] transition-colors duration-150"
-              >
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
-                    <span className="font-mono text-sm text-[var(--text-primary)] font-medium">
-                      {session.sessionId.slice(0, 16)}...
-                    </span>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-[var(--text-primary)] truncate max-w-md" title={session.pageUrl}>
-                    {session.pageUrl}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center">
-                  <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-[var(--bg-tertiary)] text-blue-400">
-                    {session.vitalsCount}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center">
-                  <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-medium ${session.errorsCount > 0
-                      ? 'bg-red-500/10 text-red-400'
-                      : 'bg-blue-500/10 text-blue-400'
-                    }`}>
-                    {session.errorsCount}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)]">
-                  {format(new Date(session.lastSeen), 'MMM dd, HH:mm:ss')}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {sessions.length > 10 && (
-        <div className="px-6 py-4 border-t border-[var(--border-color)] text-center text-xs text-[var(--text-tertiary)]">
-          Showing 10 of {sessions.length} sessions
-        </div>
+          {pages > 1 && (
+            <footer className="flex items-center justify-between px-4 py-2.5 border-t border-[var(--border-color)] text-[12px] text-[var(--text-tertiary)]">
+              <span className="num">
+                {current * pageSize + 1}–{Math.min(sessions.length, (current + 1) * pageSize)} of {sessions.length}
+              </span>
+              <div className="flex gap-1">
+                <button className="btn btn-sm" disabled={current === 0} onClick={() => setPage(current - 1)}>Previous</button>
+                <button className="btn btn-sm" disabled={current >= pages - 1} onClick={() => setPage(current + 1)}>Next</button>
+              </div>
+            </footer>
+          )}
+        </>
       )}
-    </div>
+    </Panel>
   );
 };

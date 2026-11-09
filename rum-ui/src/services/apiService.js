@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://rumtest.onrender.com/api/rum';
+export const API_BASE_URL = 'https://rumtest.onrender.com/api/rum';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

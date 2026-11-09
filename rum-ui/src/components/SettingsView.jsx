@@ -2,106 +2,76 @@ import React from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLiveMode } from '../contexts/LiveModeContext';
 import { Header } from './Header';
+import { Panel } from './ui/primitives';
+import { API_BASE_URL } from '../services/apiService';
+
+const Row = ({ title, body, children }) => (
+  <div className="flex items-center justify-between gap-6 px-4 py-3.5 border-b border-[var(--border-color)] last:border-b-0">
+    <div className="min-w-0">
+      <p className="text-[13px] font-medium text-[var(--text-primary)]">{title}</p>
+      {body && <p className="text-[12px] text-[var(--text-tertiary)] mt-0.5">{body}</p>}
+    </div>
+    <div className="shrink-0">{children}</div>
+  </div>
+);
+
+const Switch = ({ checked, onChange, label }) => (
+  <button
+    role="switch"
+    aria-checked={checked}
+    aria-label={label}
+    onClick={onChange}
+    className={`relative w-9 h-5 rounded-full transition-colors ${checked ? 'bg-[var(--accent)]' : 'bg-[var(--border-strong)]'}`}
+  >
+    <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-4' : ''}`} />
+  </button>
+);
 
 export const SettingsView = () => {
   const { theme, toggleTheme } = useTheme();
   const { isLive, toggleLiveMode, refreshInterval, updateRefreshInterval } = useLiveMode();
 
-  const refreshOptions = [
-    { label: '5 seconds', value: 5000 },
-    { label: '10 seconds', value: 10000 },
-    { label: '30 seconds', value: 30000 },
-    { label: '1 minute', value: 60000 },
-  ];
-
   return (
-    <div className="min-h-screen">
-      <Header title="Settings" subtitle="Configure dashboard preferences" />
-      <div className="p-6 max-w-4xl">
-        <div className="space-y-6">
-          {/* Theme Settings */}
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Appearance</h3>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[var(--text-primary)] font-medium">Theme</p>
-                <p className="text-xs text-[var(--text-tertiary)] mt-1">
-                  Currently using {theme === 'dark' ? 'Dark' : 'Light'} mode
-                </p>
-              </div>
-              <button
-                onClick={toggleTheme}
-                className="px-4 py-2 bg-[var(--bg-tertiary)] hover:bg-[var(--border-color)] rounded-lg text-sm font-medium text-[var(--text-primary)] transition-colors flex items-center gap-2"
-              >
-                <img
-                  src={theme === 'dark' ? '/assets/icons/sun.svg' : '/assets/icons/moon.svg'}
-                  alt={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-                  className="w-5 h-5"
-                />
-                <span>Switch to {theme === 'dark' ? 'Light' : 'Dark'}</span>
-              </button>
+    <div className="min-h-full">
+      <Header title="Settings" subtitle="Saved in this browser" />
+      <div className="px-6 py-5 max-w-3xl space-y-4">
+        <Panel title="Appearance">
+          <Row title="Theme">
+            <div className="segmented" role="group" aria-label="Theme">
+              <button aria-pressed={theme === 'light'} onClick={() => theme !== 'light' && toggleTheme()}>Light</button>
+              <button aria-pressed={theme === 'dark'} onClick={() => theme !== 'dark' && toggleTheme()}>Dark</button>
             </div>
-          </div>
+          </Row>
+        </Panel>
 
-          {/* Live Mode Settings */}
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Live Updates</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-[var(--text-primary)] font-medium">Live Mode</p>
-                  <p className="text-xs text-[var(--text-tertiary)] mt-1">Automatically refresh data</p>
-                </div>
-                <button
-                  onClick={toggleLiveMode}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${isLive
-                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                    : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--border-color)]'
-                    }`}
-                >
-                  <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'}`}></div>
-                  <span>{isLive ? 'Enabled' : 'Disabled'}</span>
-                </button>
-              </div>
-              {isLive && (
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-[var(--text-primary)] font-medium">Refresh Interval</p>
-                    <p className="text-xs text-[var(--text-tertiary)] mt-1">How often to update data</p>
-                  </div>
-                  <select
-                    value={refreshInterval}
-                    onChange={(e) => updateRefreshInterval(Number(e.target.value))}
-                    className="px-4 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
-                  >
-                    {refreshOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-          </div>
+        <Panel title="Data refresh">
+          <Row title="Auto-refresh" body="Poll the API on an interval while a view is open.">
+            <Switch checked={isLive} onChange={toggleLiveMode} label="Auto-refresh" />
+          </Row>
+          <Row title="Interval" body="Shorter intervals cost more requests on the free backend.">
+            <select
+              className="field w-auto"
+              value={refreshInterval}
+              disabled={!isLive}
+              onChange={(e) => updateRefreshInterval(Number(e.target.value))}
+            >
+              <option value={5000}>5 seconds</option>
+              <option value={10000}>10 seconds</option>
+              <option value={30000}>30 seconds</option>
+              <option value={60000}>1 minute</option>
+            </select>
+          </Row>
+        </Panel>
 
-          {/* API Settings */}
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">API Configuration</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm text-[var(--text-secondary)] block mb-1">API Base URL</label>
-                <input
-                  type="text"
-                  defaultValue="http://localhost:8080/api/rum"
-                  className="w-full px-4 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
-                  readOnly
-                />
-                <p className="text-xs text-[var(--text-tertiary)] mt-1">Configure in apiService.js</p>
-              </div>
-            </div>
+        <Panel title="Data source">
+          <div className="px-4 py-3.5">
+            <label className="label" htmlFor="api-url">RUM API base URL</label>
+            <input id="api-url" className="field mono" value={API_BASE_URL} readOnly />
+            <p className="text-[12px] text-[var(--text-tertiary)] mt-1.5">
+              Set in <span className="mono">src/services/apiService.js</span>.
+            </p>
           </div>
-        </div>
+        </Panel>
       </div>
     </div>
   );

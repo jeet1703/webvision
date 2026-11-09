@@ -1,22 +1,202 @@
 import React, { useState } from 'react';
 import { Header } from './Header';
-import { MetricsCard } from './MetricsCard';
+import { Panel, EmptyState, fmtMs } from './ui/primitives';
+import { Icon } from './ui/Icon';
+
+const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+const hasBody = (m) => m === 'POST' || m === 'PUT' || m === 'PATCH';
+const emptyApi = () => ({ url: '', method: 'GET', body: '', headers: [{ key: '', value: '' }], bodyType: 'json' });
+
+const jsonError = (body) => {
+  try {
+    JSON.parse(body);
+    return null;
+  } catch (e) {
+    return e.message;
+  }
+};
+
+const ApiConfig = ({ label, optional, api, setApi }) => {
+  const setHeader = (idx, field, value) =>
+    setApi({ ...api, headers: api.headers.map((h, i) => (i === idx ? { ...h, [field]: value } : h)) });
+  const bodyErr = api.bodyType === 'json' && api.body ? jsonError(api.body) : null;
+
+  return (
+    <Panel
+      title={label}
+      subtitle={optional ? 'Optional. Leave blank to test one endpoint.' : 'Required'}
+      bodyClassName="p-4 space-y-4"
+    >
+      <div>
+        <label className="label" htmlFor={`${label}-url`}>Endpoint</label>
+        <div className="flex gap-2">
+          <select
+            className="field w-[96px] mono font-medium"
+            value={api.method}
+            onChange={(e) => setApi({ ...api, method: e.target.value })}
+            aria-label="HTTP method"
+          >
+            {METHODS.map((m) => (
+              <option key={m}>{m}</option>
+            ))}
+          </select>
+          <input
+            id={`${label}-url`}
+            className="field mono flex-1"
+            value={api.url}
+            onChange={(e) => setApi({ ...api, url: e.target.value })}
+            placeholder="https://api.example.com/v1/items"
+            spellCheck={false}
+          />
+        </div>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="label mb-0">Headers</span>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => setApi({ ...api, headers: [...api.headers, { key: '', value: '' }] })}
+          >
+            <Icon name="plus" size={12} /> Add header
+          </button>
+        </div>
+        <div className="space-y-2">
+          {api.headers.map((h, idx) => (
+            <div key={idx} className="flex gap-2">
+              <input className="field mono flex-1" value={h.key} onChange={(e) => setHeader(idx, 'key', e.target.value)} placeholder="Authorization" spellCheck={false} />
+              <input className="field mono flex-1" value={h.value} onChange={(e) => setHeader(idx, 'value', e.target.value)} placeholder="Bearer …" spellCheck={false} />
+              <button
+                className="btn btn-ghost w-8 px-0"
+                disabled={api.headers.length === 1}
+                onClick={() => setApi({ ...api, headers: api.headers.filter((_, i) => i !== idx) })}
+                aria-label="Remove header"
+                title="Remove header"
+              >
+                <Icon name="trash" size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {hasBody(api.method) && (
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="label mb-0">Body</span>
+            <div className="segmented">
+              <button aria-pressed={api.bodyType === 'json'} onClick={() => setApi({ ...api, bodyType: 'json' })}>JSON</button>
+              <button aria-pressed={api.bodyType === 'text'} onClick={() => setApi({ ...api, bodyType: 'text' })}>Text</button>
+            </div>
+          </div>
+          <textarea
+            className="field mono text-[12px]"
+            rows={6}
+            value={api.body}
+            onChange={(e) => setApi({ ...api, body: e.target.value })}
+            placeholder={api.bodyType === 'json' ? '{\n  "key": "value"\n}' : 'Plain text body'}
+            spellCheck={false}
+            style={bodyErr ? { borderColor: 'var(--critical)' } : undefined}
+          />
+          {api.bodyType === 'json' && api.body && (
+            <p className={`mt-1 text-[12px] flex items-center gap-1 ${bodyErr ? 'text-[var(--critical-text)]' : 'text-[var(--good-text)]'}`}>
+              <Icon name={bodyErr ? 'alert' : 'check'} size={12} />
+              {bodyErr ? `Invalid JSON: ${bodyErr}` : 'Valid JSON'}
+            </p>
+          )}
+        </div>
+      )}
+    </Panel>
+  );
+};
+
+const statusTone = (code) =>
+  !code ? 'critical' : code < 300 ? 'good' : code < 400 ? 'warning' : 'critical';
+
+const ResponseDrawer = ({ response, onClose }) => (
+  <div className="fixed inset-0 z-50 flex justify-end bg-black/40" onClick={onClose}>
+    <div
+      className="h-full w-full max-w-2xl bg-[var(--bg-secondary)] border-l border-[var(--border-color)] flex flex-col"
+      style={{ boxShadow: 'var(--shadow-pop)' }}
+      onClick={(e) => e.stopPropagation()}
+      role="dialog"
+      aria-label={`${response.label} responses`}
+    >
+      <header className="panel-head">
+        <div className="min-w-0">
+          <h3 className="panel-title">{response.label} · {response.results.length} runs</h3>
+          <p className="panel-sub mono truncate">{response.url}</p>
+        </div>
+        <button className="btn btn-ghost w-8 px-0" onClick={onClose} aria-label="Close">
+          <Icon name="x" size={16} />
+        </button>
+      </header>
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {response.results.map((res, idx) => (
+          <details key={idx} className="panel" open={idx === 0}>
+            <summary className="flex items-center gap-3 px-3 py-2.5 cursor-pointer text-[12px]">
+              <span className="text-[var(--text-muted)] num w-12">Run {idx + 1}</span>
+              <span className={`chip chip-${statusTone(res.statusCode)} num`}>{res.statusCode || '—'} {res.statusText}</span>
+              <span className="num text-[var(--text-primary)]">{res.responseTime.toFixed(0)} ms</span>
+              <span className="num text-[var(--text-muted)]">{(res.responseSize / 1024).toFixed(2)} KB</span>
+              <span className="ml-auto text-[var(--text-muted)] num">{new Date(res.timestamp).toLocaleTimeString()}</span>
+            </summary>
+            <div className="px-3 pb-3 space-y-3">
+              {res.error && (
+                <div className="text-[12px] text-[var(--critical-text)] bg-[var(--critical-soft)] rounded-md px-3 py-2">{res.error}</div>
+              )}
+              {res.responseHeaders && Object.keys(res.responseHeaders).length > 0 && (
+                <div>
+                  <p className="eyebrow mb-1.5">Headers</p>
+                  <div className="codeblock mono">
+                    {Object.entries(res.responseHeaders).map(([k, v]) => (
+                      <div key={k}>
+                        <span className="text-[var(--accent-text)]">{k}</span>: {String(v)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {res.responseBody && (
+                <div>
+                  <p className="eyebrow mb-1.5">Body · {res.responseContentType}</p>
+                  <pre className="codeblock max-h-96 whitespace-pre-wrap break-all">
+                    {(() => {
+                      if (res.responseContentType?.includes('application/json')) {
+                        try {
+                          return JSON.stringify(JSON.parse(res.responseBody), null, 2);
+                        } catch {
+                          /* fall through */
+                        }
+                      }
+                      return res.responseBody.length > 10000
+                        ? `${res.responseBody.slice(0, 10000)}\n\n… truncated at 10,000 characters`
+                        : res.responseBody;
+                    })()}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </details>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
+const Ms = ({ v }) => {
+  const f = fmtMs(v);
+  return (
+    <>
+      {f.value}
+      <span className="text-[var(--text-muted)] ml-0.5">{f.unit}</span>
+    </>
+  );
+};
 
 export const ComparisonView = () => {
-  const [api1, setApi1] = useState({ 
-    url: '', 
-    method: 'GET', 
-    body: '', 
-    headers: [{ key: '', value: '' }],
-    bodyType: 'json'
-  });
-  const [api2, setApi2] = useState({ 
-    url: '', 
-    method: 'GET', 
-    body: '', 
-    headers: [{ key: '', value: '' }],
-    bodyType: 'json'
-  });
+  const [api1, setApi1] = useState(emptyApi);
+  const [api2, setApi2] = useState(emptyApi);
   const [testResults, setTestResults] = useState([]);
   const [isTesting, setIsTesting] = useState(false);
   const [testIterations, setTestIterations] = useState(3);
@@ -159,8 +339,8 @@ export const ComparisonView = () => {
   // Run tests on APIs
   const runTests = async () => {
     const apisToTest = [];
-    if (api1.url.trim()) apisToTest.push({ ...api1, label: 'API 1' });
-    if (api2.url.trim()) apisToTest.push({ ...api2, label: 'API 2' });
+    if (api1.url.trim()) apisToTest.push({ ...api1, label: 'API A' });
+    if (api2.url.trim()) apisToTest.push({ ...api2, label: 'API B' });
     
     if (apisToTest.length === 0) return;
     
@@ -222,671 +402,130 @@ export const ComparisonView = () => {
     setIsTesting(false);
   };
 
-  // Determine best/worst performer
-  const getBestWorst = (metricKey, lowerIsBetter = true) => {
-    if (testResults.length < 2) return { best: null, worst: null };
-    
-    const sorted = [...testResults].sort((a, b) => {
-      const aVal = a.metrics[metricKey] || 0;
-      const bVal = b.metrics[metricKey] || 0;
-      return lowerIsBetter ? aVal - bVal : bVal - aVal;
-    });
-    
-    return {
-      best: sorted[0]?.url,
-      worst: sorted[sorted.length - 1]?.url,
-    };
+  const hasAtLeastOneApi = api1.url.trim() || api2.url.trim();
+  const ok = testResults.filter((r) => r.metrics.successCount > 0);
+  const winner = ok.length === 2 ? [...ok].sort((a, b) => a.metrics.avgResponseTime - b.metrics.avgResponseTime)[0] : null;
+  const loser = winner ? ok.find((r) => r !== winner) : null;
+  const diffPct = winner && loser.metrics.avgResponseTime > 0
+    ? ((loser.metrics.avgResponseTime - winner.metrics.avgResponseTime) / loser.metrics.avgResponseTime) * 100
+    : null;
+
+  const ROWS = [
+    { label: 'Status', render: (r) => <span className={`chip chip-${statusTone(r.metrics.statusCode)} num`}>{r.metrics.statusCode || 'Failed'}</span> },
+    { label: 'Successful runs', render: (r) => <span className="num">{r.metrics.successCount} / {r.results.length}</span> },
+    { label: 'Avg response', render: (r) => <span className="strong num"><Ms v={r.metrics.avgResponseTime} /></span>, best: 'min', key: 'avgResponseTime' },
+    { label: 'Fastest run', render: (r) => <Ms v={r.metrics.minResponseTime} />, best: 'min', key: 'minResponseTime' },
+    { label: 'Slowest run', render: (r) => <Ms v={r.metrics.maxResponseTime} />, best: 'min', key: 'maxResponseTime' },
+    { label: 'Avg wall clock', render: (r) => <Ms v={r.metrics.avgRequestDuration} /> },
+    { label: 'Avg payload', render: (r) => (r.metrics.avgResponseSize > 0 ? `${(r.metrics.avgResponseSize / 1024).toFixed(2)} KB` : '–') },
+  ];
+
+  const isBest = (row, r) => {
+    if (!row.best || ok.length < 2 || !ok.includes(r)) return false;
+    const vals = ok.map((x) => x.metrics[row.key]);
+    return r.metrics[row.key] === Math.min(...vals);
   };
 
-  const responseTimeBestWorst = getBestWorst('avgResponseTime', true);
-  const successRateBestWorst = getBestWorst('successRate', false);
-
-  const hasAtLeastOneApi = api1.url.trim() || api2.url.trim();
-
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)]">
-      <Header 
-        title="API Performance Comparison" 
-        subtitle="Test and compare performance metrics between two APIs"
-        timeRange={null}
-        setTimeRange={() => {}}
+    <div className="min-h-full">
+      <Header
+        title="API Compare"
+        subtitle="Time two endpoints from this browser"
+        actions={
+          <button className="btn btn-primary" onClick={runTests} disabled={!hasAtLeastOneApi || isTesting}>
+            {isTesting ? <Icon name="refresh" size={14} className="animate-spin" /> : <Icon name="play" size={12} />}
+            {isTesting ? 'Running…' : 'Run test'}
+          </button>
+        }
       />
 
-      <div className="max-w-[1920px] mx-auto px-6 py-6">
-        {/* API Configuration */}
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Configure APIs to Compare</h2>
-          
-          {/* API 1 Configuration */}
-          <div className="mb-6 p-4 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-lg">
-            <label className="block text-sm font-semibold text-[var(--text-primary)] mb-3">API 1</label>
-            <div className="space-y-4">
-              {/* URL and Method */}
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  value={api1.url}
-                  onChange={(e) => setApi1({ ...api1, url: e.target.value })}
-                  placeholder="Enter API URL (e.g., https://api.example.com/endpoint)"
-                  className="flex-1 px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <select
-                  value={api1.method}
-                  onChange={(e) => setApi1({ ...api1, method: e.target.value })}
-                  className="px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="GET">GET</option>
-                  <option value="POST">POST</option>
-                  <option value="PUT">PUT</option>
-                  <option value="PATCH">PATCH</option>
-                  <option value="DELETE">DELETE</option>
-                </select>
-              </div>
-
-              {/* Headers */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm text-gray-400">Headers</label>
-                  <button
-                    onClick={() => setApi1({ 
-                      ...api1, 
-                      headers: [...api1.headers, { key: '', value: '' }] 
-                    })}
-                    className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
-                  >
-                    <img src="/assets/icons/plus.svg" alt="Add" className="w-4 h-4" />
-                    Add Header
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {api1.headers.map((header, idx) => (
-                    <div key={idx} className="flex gap-2">
-                      <input
-                        type="text"
-                        value={header.key}
-                        onChange={(e) => {
-                          const newHeaders = [...api1.headers];
-                          newHeaders[idx].key = e.target.value;
-                          setApi1({ ...api1, headers: newHeaders });
-                        }}
-                        placeholder="Header name (e.g., Authorization)"
-                        className="flex-1 px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-[var(--text-primary)] placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <input
-                        type="text"
-                        value={header.value}
-                        onChange={(e) => {
-                          const newHeaders = [...api1.headers];
-                          newHeaders[idx].value = e.target.value;
-                          setApi1({ ...api1, headers: newHeaders });
-                        }}
-                        placeholder="Header value"
-                        className="flex-1 px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-[var(--text-primary)] placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      {api1.headers.length > 1 && (
-                        <button
-                          onClick={() => {
-                            const newHeaders = api1.headers.filter((_, i) => i !== idx);
-                            setApi1({ ...api1, headers: newHeaders });
-                          }}
-                          className="px-3 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
-                          title="Remove header"
-                        >
-                          <img src="/assets/icons/trash.svg" alt="Remove" className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Request Body */}
-              {(api1.method === 'POST' || api1.method === 'PUT' || api1.method === 'PATCH') && (
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm text-gray-400">Request Body</label>
-                    <select
-                      value={api1.bodyType}
-                      onChange={(e) => setApi1({ ...api1, bodyType: e.target.value })}
-                      className="px-3 py-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="json">JSON</option>
-                      <option value="text">Text</option>
-                    </select>
-                  </div>
-                  <textarea
-                    value={api1.body}
-                    onChange={(e) => setApi1({ ...api1, body: e.target.value })}
-                    placeholder={api1.bodyType === 'json' ? '{"key": "value"}' : 'Request body text'}
-                    rows="6"
-                    className={`w-full px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm ${
-                      api1.bodyType === 'json' && api1.body ? 
-                        (() => {
-                          try {
-                            JSON.parse(api1.body);
-                            return 'border-blue-500/30';
-                          } catch {
-                            return 'border-red-500/30';
-                          }
-                        })() : ''
-                    }`}
-                  />
-                  {api1.bodyType === 'json' && api1.body && (
-                    <div className="mt-1 text-xs">
-                      {(() => {
-                        try {
-                          JSON.parse(api1.body);
-                          return (
-                            <span className="text-blue-400 flex items-center gap-1">
-                              <img src="/assets/icons/checkmark.svg" alt="Valid" className="w-3 h-3" />
-                              Valid JSON
-                            </span>
-                          );
-                        } catch (e) {
-                          return (
-                            <span className="text-red-400 flex items-center gap-1">
-                              <img src="/assets/icons/cross.svg" alt="Invalid" className="w-3 h-3" />
-                              Invalid JSON: {e.message}
-                            </span>
-                          );
-                        }
-                      })()}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* API 2 Configuration */}
-          <div className="mb-6 p-4 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-lg">
-            <label className="block text-sm font-semibold text-[var(--text-primary)] mb-3">API 2 (Optional)</label>
-            <div className="space-y-4">
-              {/* URL and Method */}
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  value={api2.url}
-                  onChange={(e) => setApi2({ ...api2, url: e.target.value })}
-                  placeholder="Enter API URL (e.g., https://api.example.com/endpoint)"
-                  className="flex-1 px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <select
-                  value={api2.method}
-                  onChange={(e) => setApi2({ ...api2, method: e.target.value })}
-                  className="px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="GET">GET</option>
-                  <option value="POST">POST</option>
-                  <option value="PUT">PUT</option>
-                  <option value="PATCH">PATCH</option>
-                  <option value="DELETE">DELETE</option>
-                </select>
-              </div>
-
-              {/* Headers */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm text-gray-400">Headers</label>
-                  <button
-                    onClick={() => setApi2({ 
-                      ...api2, 
-                      headers: [...api2.headers, { key: '', value: '' }] 
-                    })}
-                    className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
-                  >
-                    <img src="/assets/icons/plus.svg" alt="Add" className="w-4 h-4" />
-                    Add Header
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {api2.headers.map((header, idx) => (
-                    <div key={idx} className="flex gap-2">
-                      <input
-                        type="text"
-                        value={header.key}
-                        onChange={(e) => {
-                          const newHeaders = [...api2.headers];
-                          newHeaders[idx].key = e.target.value;
-                          setApi2({ ...api2, headers: newHeaders });
-                        }}
-                        placeholder="Header name (e.g., Authorization)"
-                        className="flex-1 px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-[var(--text-primary)] placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <input
-                        type="text"
-                        value={header.value}
-                        onChange={(e) => {
-                          const newHeaders = [...api2.headers];
-                          newHeaders[idx].value = e.target.value;
-                          setApi2({ ...api2, headers: newHeaders });
-                        }}
-                        placeholder="Header value"
-                        className="flex-1 px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-[var(--text-primary)] placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      {api2.headers.length > 1 && (
-                        <button
-                          onClick={() => {
-                            const newHeaders = api2.headers.filter((_, i) => i !== idx);
-                            setApi2({ ...api2, headers: newHeaders });
-                          }}
-                          className="px-3 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
-                          title="Remove header"
-                        >
-                          <img src="/assets/icons/trash.svg" alt="Remove" className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Request Body */}
-              {(api2.method === 'POST' || api2.method === 'PUT' || api2.method === 'PATCH') && (
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm text-gray-400">Request Body</label>
-                    <select
-                      value={api2.bodyType}
-                      onChange={(e) => setApi2({ ...api2, bodyType: e.target.value })}
-                      className="px-3 py-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="json">JSON</option>
-                      <option value="text">Text</option>
-                    </select>
-                  </div>
-                  <textarea
-                    value={api2.body}
-                    onChange={(e) => setApi2({ ...api2, body: e.target.value })}
-                    placeholder={api2.bodyType === 'json' ? '{"key": "value"}' : 'Request body text'}
-                    rows="6"
-                    className={`w-full px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm ${
-                      api2.bodyType === 'json' && api2.body ? 
-                        (() => {
-                          try {
-                            JSON.parse(api2.body);
-                            return 'border-blue-500/30';
-                          } catch {
-                            return 'border-red-500/30';
-                          }
-                        })() : ''
-                    }`}
-                  />
-                  {api2.bodyType === 'json' && api2.body && (
-                    <div className="mt-1 text-xs">
-                      {(() => {
-                        try {
-                          JSON.parse(api2.body);
-                          return (
-                            <span className="text-blue-400 flex items-center gap-1">
-                              <img src="/assets/icons/checkmark.svg" alt="Valid" className="w-3 h-3" />
-                              Valid JSON
-                            </span>
-                          );
-                        } catch (e) {
-                          return (
-                            <span className="text-red-400 flex items-center gap-1">
-                              <img src="/assets/icons/cross.svg" alt="Invalid" className="w-3 h-3" />
-                              Invalid JSON: {e.message}
-                            </span>
-                          );
-                        }
-                      })()}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Test Configuration */}
-          <div className="flex items-center gap-4 mb-4">
-            <label className="text-sm text-gray-400">Test Iterations:</label>
-            <input
-              type="number"
-              min="1"
-              max="10"
-              value={testIterations}
-              onChange={(e) => setTestIterations(parseInt(e.target.value) || 1)}
-              className="w-20 px-3 py-1 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <span className="text-xs text-gray-500">(Higher iterations = more accurate averages)</span>
-          </div>
-
-          {/* Run Tests Button */}
-          <button
-            onClick={runTests}
-            disabled={!hasAtLeastOneApi || isTesting}
-            className={`px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-              !hasAtLeastOneApi || isTesting
-                ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
-            }`}
-          >
-            {isTesting ? (
-              <>
-                <img src="/assets/icons/spinner.svg" alt="Loading" className="w-4 h-4 animate-spin" />
-                Testing...
-              </>
-            ) : (
-              <>
-                <img src="/assets/icons/play.svg" alt="Play" className="w-4 h-4" />
-                Run Performance Tests
-              </>
-            )}
-          </button>
+      <div className="px-6 py-5 max-w-[1600px] mx-auto space-y-4">
+        <div className="grid gap-3 grid-cols-1 xl:grid-cols-2">
+          <ApiConfig label="API A" api={api1} setApi={setApi1} />
+          <ApiConfig label="API B" optional api={api2} setApi={setApi2} />
         </div>
 
-        {/* Test Results */}
-        {testResults.length > 0 && (
-          <>
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <MetricsCard
-                title="APIs Tested"
-                value={testResults.length}
-                unit=""
-                status="good"
-                iconSrc="/assets/icons/link.svg"
-              />
-              <MetricsCard
-                title="Avg Response Time"
-                value={(() => {
-                  // Calculate weighted average based on success count
-                  const totalWeightedSum = testResults.reduce((sum, r) => 
-                    sum + (r.metrics.avgResponseTime * r.metrics.successCount), 0
-                  );
-                  const totalSuccessCount = testResults.reduce((sum, r) => 
-                    sum + r.metrics.successCount, 0
-                  );
-                  return totalSuccessCount > 0 ? totalWeightedSum / totalSuccessCount : 0;
-                })()}
-                unit="ms"
-                status="good"
-                iconSrc="/assets/icons/lightning.svg"
-              />
-              <MetricsCard
-                title="Success Rate"
-                value={(() => {
-                  // Calculate weighted average based on total tests
-                  const totalSuccesses = testResults.reduce((sum, r) => sum + r.metrics.successCount, 0);
-                  const totalTests = testResults.reduce((sum, r) => sum + r.results.length, 0);
-                  return totalTests > 0 ? (totalSuccesses / totalTests) * 100 : 0;
-                })()}
-                unit="%"
-                status="good"
-                iconSrc="/assets/icons/checkmark.svg"
-              />
-              <MetricsCard
-                title="Total Tests"
-                value={testResults.reduce((sum, r) => sum + r.results.length, 0)}
-                unit=""
-                status="good"
-                iconSrc="/assets/icons/graph.svg"
-              />
-            </div>
+        <div className="flex items-center gap-3 text-[13px] text-[var(--text-secondary)]">
+          <label htmlFor="iterations">Runs per endpoint</label>
+          <input
+            id="iterations"
+            type="number"
+            min="1"
+            max="10"
+            className="field w-16 num"
+            value={testIterations}
+            onChange={(e) => setTestIterations(Math.min(10, Math.max(1, parseInt(e.target.value, 10) || 1)))}
+          />
+          <span className="text-[12px] text-[var(--text-tertiary)]">Requests run in sequence, 500 ms apart. Cross-origin APIs must allow CORS.</span>
+        </div>
 
-            {/* Comparison Table */}
-            <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg overflow-hidden mb-6">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-[var(--bg-tertiary)] border-b border-[var(--border-color)]">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-[var(--text-primary)] sticky left-0 bg-[var(--bg-tertiary)] z-10 min-w-[200px]">
-                        API
-                      </th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-[var(--text-primary)]">Method</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-[var(--text-primary)]">Status Code</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-[var(--text-primary)]">Success Rate (%)</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-[var(--text-primary)]">Avg Response Time (ms)</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-[var(--text-primary)]">Min Response Time</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-[var(--text-primary)]">Max Response Time</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-[var(--text-primary)]">Avg Request Duration (ms)</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-[var(--text-primary)]">Avg Response Size</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-[var(--text-primary)]">Success/Total</th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-[var(--text-primary)]">Response</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--border-color)]">
-                    {testResults.map((result, index) => (
-                      <tr
-                        key={result.url}
-                        className={`hover:bg-[var(--border-color)]/50 transition-colors ${
-                          index % 2 === 0 ? 'bg-[var(--bg-secondary)]' : 'bg-[var(--bg-tertiary)]'
-                        }`}
-                      >
-                        <td className="px-6 py-4 text-sm text-[var(--text-primary)] sticky left-0 bg-inherit z-10">
-                          <div className="font-semibold mb-1">{result.label}</div>
-                          <div className="font-mono text-xs text-gray-400 truncate max-w-[300px]" title={result.url}>
-                            {result.url.length > 50 ? `${result.url.substring(0, 47)}...` : result.url}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-center text-sm text-[var(--text-primary)] font-medium">
-                          <span className={`px-2 py-1 rounded ${
-                            result.method === 'GET' ? 'bg-blue-500/20 text-blue-400' :
-                            result.method === 'POST' ? 'bg-blue-500/20 text-blue-400' :
-                            'bg-yellow-500/20 text-yellow-400'
-                          }`}>
-                            {result.method}
-                          </span>
-                        </td>
-                        <td className={`px-6 py-4 text-center text-sm font-medium ${
-                          result.metrics.statusCode >= 200 && result.metrics.statusCode < 300
-                            ? 'text-blue-400'
-                            : result.metrics.statusCode >= 300 && result.metrics.statusCode < 400
-                            ? 'text-yellow-400'
-                            : result.metrics.statusCode >= 400
-                            ? 'text-red-400'
-                            : 'text-gray-400'
-                        }`}>
-                          {result.metrics.statusCode || 'N/A'}
-                        </td>
-                        <td className={`px-6 py-4 text-center text-sm font-medium ${
-                          successRateBestWorst.best === result.url ? 'text-blue-400' :
-                          successRateBestWorst.worst === result.url ? 'text-red-400' :
-                          result.metrics.successRate === 100 ? 'text-blue-400' :
-                          result.metrics.successRate >= 50 ? 'text-yellow-400' :
-                          'text-red-400'
-                        }`}>
-                          <div className="flex items-center justify-center gap-1">
-                            {result.metrics.successRate.toFixed(1)}%
-                            {successRateBestWorst.best === result.url && testResults.length > 1 && (
-                              <img src="/assets/icons/trophy.svg" alt="Best" className="w-4 h-4 text-blue-400" />
-                            )}
-                            {successRateBestWorst.worst === result.url && result.metrics.successRate < 100 && testResults.length > 1 && (
-                              <img src="/assets/icons/alert.svg" alt="Worst" className="w-4 h-4 text-red-400" />
-                            )}
-                          </div>
-                        </td>
-                        <td className={`px-6 py-4 text-center text-sm font-medium ${
-                          responseTimeBestWorst.best === result.url ? 'text-blue-400' :
-                          responseTimeBestWorst.worst === result.url ? 'text-red-400' :
-                          result.metrics.avgResponseTime < 200 ? 'text-blue-400' :
-                          result.metrics.avgResponseTime < 1000 ? 'text-yellow-400' :
-                          'text-red-400'
-                        }`}>
-                          <div className="flex items-center justify-center gap-1">
-                            {result.metrics.avgResponseTime.toFixed(0)} ms
-                            {responseTimeBestWorst.best === result.url && testResults.length > 1 && (
-                              <img src="/assets/icons/trophy.svg" alt="Best" className="w-4 h-4" />
-                            )}
-                            {responseTimeBestWorst.worst === result.url && testResults.length > 1 && (
-                              <img src="/assets/icons/alert.svg" alt="Worst" className="w-4 h-4" />
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-center text-sm text-gray-400">
-                          {result.metrics.minResponseTime.toFixed(0)}
-                        </td>
-                        <td className="px-6 py-4 text-center text-sm text-gray-400">
-                          {result.metrics.maxResponseTime.toFixed(0)}
-                        </td>
-                        <td className="px-6 py-4 text-center text-sm text-[var(--text-primary)]">
-                          {result.metrics.avgRequestDuration.toFixed(0)}
-                        </td>
-                        <td className="px-6 py-4 text-center text-sm text-[var(--text-primary)]">
-                          {result.metrics.avgResponseSize > 0
-                            ? (result.metrics.avgResponseSize / 1024).toFixed(2) + ' KB'
-                            : 'N/A'}
-                        </td>
-                        <td className="px-6 py-4 text-center text-sm">
-                          <span className={`font-medium ${
-                            result.metrics.successCount === result.results.length
-                              ? 'text-blue-400'
-                              : result.metrics.failureCount === result.results.length
-                              ? 'text-red-400'
-                              : 'text-yellow-400'
-                          }`}>
-                            {result.metrics.successCount}/{result.results.length}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          {result.results.length > 0 && result.results[0].success && (
-                            <button
-                              onClick={() => setSelectedResponse({
-                                url: result.url,
-                                label: result.label,
-                                results: result.results
-                              })}
-                              className="text-blue-400 hover:text-blue-300 text-xs font-medium px-2 py-1 rounded hover:bg-blue-500/10 transition-colors"
-                            >
-                              View Response
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Response Viewer Modal */}
-            {selectedResponse && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedResponse(null)}>
-                <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-                  <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-tertiary)] flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-[var(--text-primary)]">{selectedResponse.label}</h3>
-                      <p className="text-xs text-gray-400 mt-1">{selectedResponse.url}</p>
-                    </div>
-                    <button
-                      onClick={() => setSelectedResponse(null)}
-                      className="text-gray-400 hover:text-[var(--text-primary)] transition-colors"
-                    >
-                      <img src="/assets/icons/cross.svg" alt="Close" className="w-5 h-5" />
-                    </button>
-                  </div>
-                  <div className="flex-1 overflow-y-auto p-6">
-                    <div className="space-y-4">
-                      {selectedResponse.results.map((res, idx) => (
-                        <div key={idx} className="bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                res.success ? 'bg-blue-500/20 text-blue-400' : 'bg-red-500/20 text-red-400'
-                              }`}>
-                                {res.success ? 'Success' : 'Failed'}
-                              </span>
-                              <span className="text-xs text-gray-400">
-                                {res.statusCode} {res.statusText}
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                {res.responseTime.toFixed(0)}ms
-                              </span>
-                            </div>
-                            <span className="text-xs text-gray-500">
-                              {new Date(res.timestamp).toLocaleTimeString()}
-                            </span>
-                          </div>
-                          
-                          {res.responseHeaders && Object.keys(res.responseHeaders).length > 0 && (
-                            <div className="mb-3">
-                              <h4 className="text-xs font-semibold text-gray-400 mb-2 uppercase">Response Headers</h4>
-                              <div className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded p-2 text-xs font-mono">
-                                {Object.entries(res.responseHeaders).map(([key, value]) => (
-                                  <div key={key} className="text-gray-300">
-                                    <span className="text-blue-400">{key}:</span> <span className="text-gray-400">{String(value)}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {res.responseBody && (
-                            <div>
-                              <div className="flex items-center justify-between mb-2">
-                                <h4 className="text-xs font-semibold text-gray-400 uppercase">Response Body</h4>
-                                <span className="text-xs text-gray-500">
-                                  {res.responseContentType} • {(res.responseSize / 1024).toFixed(2)} KB
-                                </span>
-                              </div>
-                              <div className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded p-3 overflow-x-auto">
-                                {res.responseContentType?.includes('application/json') ? (
-                                  <pre className="text-xs text-gray-300 font-mono whitespace-pre-wrap">
-                                    {(() => {
-                                      try {
-                                        return JSON.stringify(JSON.parse(res.responseBody), null, 2);
-                                      } catch {
-                                        return res.responseBody;
-                                      }
-                                    })()}
-                                  </pre>
-                                ) : (
-                                  <pre className="text-xs text-gray-300 font-mono whitespace-pre-wrap max-h-96 overflow-y-auto">
-                                    {res.responseBody.substring(0, 10000)}
-                                    {res.responseBody.length > 10000 && '...\n\n(Response truncated)'}
-                                  </pre>
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          {res.error && (
-                            <div className="mt-3">
-                              <h4 className="text-xs font-semibold text-red-400 mb-2 uppercase">Error</h4>
-                              <div className="bg-red-500/10 border border-red-500/30 rounded p-2 text-xs text-red-400">
-                                {res.error}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Legend */}
-            {testResults.length > 1 && (
-              <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-4">
-                <p className="text-sm text-gray-400 flex items-center gap-4 flex-wrap">
-                  <span className="flex items-center gap-1">
-                    <img src="/assets/icons/trophy.svg" alt="Best" className="w-4 h-4" />
-                    <span className="text-blue-400">= Best performer</span>
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <img src="/assets/icons/alert.svg" alt="Worst" className="w-4 h-4" />
-                    <span className="text-red-400">= Worst performer</span>
-                  </span>
-                  <span>Response Time: <span className="text-blue-400">&lt;200ms</span> = excellent, 
-                    <span className="text-yellow-400"> 200-1000ms</span> = good, 
-                    <span className="text-red-400"> &gt;1000ms</span> = needs improvement</span>
-                </p>
-              </div>
-            )}
-          </>
-        )}
-
-        {!hasAtLeastOneApi && (
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-12 text-center">
-            <p className="text-gray-400 text-lg">
-              Configure at least one API above and click "Run Performance Tests" to see metrics.
-            </p>
+        {testResults.length === 0 ? (
+          <div className="panel">
+            <EmptyState
+              icon="compare"
+              title={isTesting ? 'Running requests…' : 'No results yet'}
+              body={isTesting ? 'Each endpoint runs in turn.' : 'Enter at least one endpoint and press Run test.'}
+            />
           </div>
+        ) : (
+          <Panel
+            title="Results"
+            subtitle={
+              winner && diffPct != null
+                ? `${winner.label} averaged ${diffPct.toFixed(0)}% faster than ${loser.label}`
+                : `${testResults.reduce((s, r) => s + r.results.length, 0)} requests`
+            }
+          >
+            <div className="overflow-x-auto">
+              <table className="dtable">
+                <thead>
+                  <tr>
+                    <th>Metric</th>
+                    {testResults.map((r) => (
+                      <th key={r.label} className="r">
+                        <span className="normal-case tracking-normal text-[12px] text-[var(--text-primary)] font-semibold">{r.label}</span>
+                        <span className="block normal-case tracking-normal mono text-[11px] text-[var(--text-muted)] font-normal truncate max-w-[320px] ml-auto" title={r.url}>
+                          {r.method} {r.url}
+                        </span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {ROWS.map((row) => (
+                    <tr key={row.label}>
+                      <td className="text-[var(--text-tertiary)]">{row.label}</td>
+                      {testResults.map((r) => (
+                        <td key={r.label} className="r">
+                          <span className="inline-flex items-center gap-1.5 justify-end">
+                            {isBest(row, r) && <span className="chip chip-good">Best</span>}
+                            {row.render(r)}
+                          </span>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                  <tr>
+                    <td />
+                    {testResults.map((r) => (
+                      <td key={r.label} className="r">
+                        <button
+                          className="btn btn-sm"
+                          onClick={() => setSelectedResponse({ url: r.url, label: r.label, results: r.results })}
+                        >
+                          View responses
+                        </button>
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </Panel>
         )}
       </div>
+
+      {selectedResponse && <ResponseDrawer response={selectedResponse} onClose={() => setSelectedResponse(null)} />}
     </div>
   );
 };

@@ -1,250 +1,184 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { format } from 'date-fns';
+import { Panel, EmptyState } from './ui/primitives';
+import { Icon } from './ui/Icon';
+import { eventTime } from '../lib/metrics';
 
-export const ErrorsTable = ({ errors }) => {
-  const [expandedRow, setExpandedRow] = useState(null);
+const SEVERITY = {
+  critical: 'chip-critical',
+  high: 'chip-critical',
+  medium: 'chip-warning',
+  low: '',
+};
 
-  if (!errors || errors.length === 0) {
-    return (
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-8">
-        <div className="text-center py-12">
-          <img src="/assets/icons/checkmark.svg" alt="No errors" className="w-16 h-16 mx-auto mb-4 opacity-50" />
-          <p className="text-[var(--text-secondary)] text-sm">No errors recorded</p>
-          <p className="text-[var(--text-tertiary)] text-xs mt-2">
-            Great! Your application is error-free
-          </p>
-        </div>
-      </div>
-    );
+const parseBreadcrumbs = (json) => {
+  if (!json) return [];
+  try {
+    const v = JSON.parse(json);
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
   }
+};
 
-  const getSeverityColor = (severity) => {
-    switch (severity?.toLowerCase()) {
-      case 'critical':
-        return 'bg-red-500/20 text-red-400 border-red-500/30';
-      case 'high':
-        return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
-      case 'medium':
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      case 'low':
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-      default:
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-    }
-  };
-
-  const getErrorTypeColor = (errorType) => {
-    switch (errorType?.toLowerCase()) {
-      case 'javascript':
-        return 'bg-purple-500/20 text-purple-400';
-      case 'unhandledrejection':
-        return 'bg-pink-500/20 text-pink-400';
-      case 'network':
-        return 'bg-blue-500/20 text-blue-400';
-      case 'resource':
-        return 'bg-cyan-500/20 text-cyan-400';
-      default:
-        return 'bg-gray-500/20 text-gray-400';
-    }
-  };
-
-  const parseBreadcrumbs = (breadcrumbsJson) => {
-    if (!breadcrumbsJson) return [];
-    try {
-      return JSON.parse(breadcrumbsJson);
-    } catch {
-      return [];
-    }
-  };
+const Detail = ({ error }) => {
+  const crumbs = parseBreadcrumbs(error.breadcrumbs);
+  const fields = [
+    ['Session', error.sessionId],
+    ['User', error.userId],
+    ['Page', error.pageUrl],
+    ['Source', error.source ? `${error.source}${error.lineno ? `:${error.lineno}:${error.colno ?? 0}` : ''}` : null],
+    ['User agent', error.userAgent],
+  ].filter(([, v]) => v);
 
   return (
-    <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg overflow-hidden">
-      <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-tertiary)]">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
-              <img src="/assets/icons/error.svg" alt="Errors" className="w-5 h-5" />
-              Error Details
-            </h2>
-            <p className="text-xs text-[var(--text-tertiary)] mt-1">
-              Detailed error information captured by SDK
-            </p>
-          </div>
-          <div className="bg-red-500/10 text-red-400 px-3 py-1 rounded text-xs font-semibold border border-red-500/30">
-            {errors.length} Total
-          </div>
+    <div className="px-4 py-4 space-y-4 bg-[var(--bg-tertiary)] border-b border-[var(--border-color)]">
+      <dl className="grid grid-cols-[110px_1fr] gap-x-4 gap-y-1.5 text-[12px]">
+        {fields.map(([k, v]) => (
+          <React.Fragment key={k}>
+            <dt className="text-[var(--text-tertiary)]">{k}</dt>
+            <dd className="mono text-[var(--text-primary)] break-all">{v}</dd>
+          </React.Fragment>
+        ))}
+      </dl>
+
+      {error.stack && (
+        <div>
+          <p className="eyebrow mb-1.5">Stack trace</p>
+          <pre className="codeblock max-h-64 bg-[var(--bg-secondary)]">{error.stack}</pre>
         </div>
-      </div>
+      )}
 
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-[var(--bg-tertiary)] border-b border-[var(--border-color)]">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-                Message
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-                Type
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-                Severity
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-                Source
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-                Page URL
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-                Timestamp
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-                Details
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--border-color)]">
-            {errors.map((error, index) => {
-              const isExpanded = expandedRow === index;
-              const breadcrumbs = parseBreadcrumbs(error.breadcrumbs);
+      {error.componentStack && (
+        <div>
+          <p className="eyebrow mb-1.5">Component stack</p>
+          <pre className="codeblock max-h-48 bg-[var(--bg-secondary)]">{error.componentStack}</pre>
+        </div>
+      )}
 
-              return (
-                <React.Fragment key={error.id || index}>
-                  <tr
-                    className={`hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer ${index % 2 === 0 ? 'bg-[var(--bg-secondary)]' : 'bg-[var(--bg-tertiary)]'
-                      }`}
-                    onClick={() => setExpandedRow(isExpanded ? null : index)}
-                  >
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-[var(--text-primary)] max-w-md truncate" title={error.message}>
-                        {error.message || 'No message'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-medium ${getErrorTypeColor(error.errorType)}`}>
-                        {error.errorType || 'Unknown'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-medium border ${getSeverityColor(error.severity)}`}>
-                        {error.severity || 'N/A'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-xs text-[var(--text-secondary)] font-mono max-w-xs truncate" title={error.source}>
-                        {error.source ? (
-                          <>
-                            {error.source}
-                            {(error.lineno || error.colno) && (
-                              <span className="text-[var(--text-tertiary)] ml-1">
-                                :{error.lineno}:{error.colno}
-                              </span>
-                            )}
-                          </>
-                        ) : 'N/A'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-xs text-[var(--text-secondary)] max-w-xs truncate" title={error.pageUrl}>
-                        {error.pageUrl || 'N/A'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-center text-xs text-[var(--text-secondary)]">
-                      {error.eventTimestamp || error.createdAt
-                        ? format(new Date(error.eventTimestamp || error.createdAt), 'MMM dd, HH:mm:ss')
-                        : 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <button className="text-blue-400 hover:text-blue-300 text-xs font-medium">
-                        {isExpanded ? 'Hide' : 'Show'}
-                      </button>
-                    </td>
-                  </tr>
-                  {isExpanded && (
-                    <tr className="bg-[var(--bg-tertiary)]">
-                      <td colSpan="7" className="px-6 py-4">
-                        <div className="space-y-4">
-                          {/* Stack Trace */}
-                          {error.stack && (
-                            <div>
-                              <h4 className="text-xs font-semibold text-[var(--text-secondary)] mb-2 uppercase">Stack Trace</h4>
-                              <pre className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded p-3 text-xs text-[var(--text-secondary)] overflow-x-auto font-mono">
-                                {error.stack}
-                              </pre>
-                            </div>
-                          )}
-
-                          {/* Component Stack */}
-                          {error.componentStack && (
-                            <div>
-                              <h4 className="text-xs font-semibold text-[var(--text-secondary)] mb-2 uppercase">Component Stack</h4>
-                              <pre className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded p-3 text-xs text-[var(--text-secondary)] overflow-x-auto font-mono">
-                                {error.componentStack}
-                              </pre>
-                            </div>
-                          )}
-
-                          {/* Breadcrumbs */}
-                          {breadcrumbs.length > 0 && (
-                            <div>
-                              <h4 className="text-xs font-semibold text-[var(--text-secondary)] mb-2 uppercase">
-                                Breadcrumbs ({breadcrumbs.length})
-                              </h4>
-                              <div className="space-y-2">
-                                {breadcrumbs.map((crumb, crumbIdx) => (
-                                  <div key={crumbIdx} className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded p-2 text-xs">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${crumb.type === 'navigation' ? 'bg-blue-500/20 text-blue-400' :
-                                          crumb.type === 'click' ? 'bg-green-500/20 text-green-400' :
-                                            crumb.type === 'console' ? 'bg-yellow-500/20 text-yellow-400' :
-                                              crumb.type === 'xhr' ? 'bg-purple-500/20 text-purple-400' :
-                                                'bg-gray-500/20 text-gray-400'
-                                        }`}>
-                                        {crumb.type}
-                                      </span>
-                                      <span className="text-[var(--text-tertiary)]">
-                                        {crumb.timestamp ? format(new Date(crumb.timestamp), 'HH:mm:ss.SSS') : ''}
-                                      </span>
-                                    </div>
-                                    <div className="text-[var(--text-secondary)]">{crumb.message}</div>
-                                    {crumb.data && Object.keys(crumb.data).length > 0 && (
-                                      <div className="mt-1 text-[var(--text-tertiary)] font-mono text-xs">
-                                        {JSON.stringify(crumb.data, null, 2)}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Additional Info */}
-                          <div className="grid grid-cols-2 gap-4 text-xs">
-                            <div>
-                              <span className="text-[var(--text-secondary)]">Session ID:</span>
-                              <span className="text-[var(--text-primary)] ml-2 font-mono">{error.sessionId || 'N/A'}</span>
-                            </div>
-                            <div>
-                              <span className="text-[var(--text-secondary)]">User ID:</span>
-                              <span className="text-[var(--text-primary)] ml-2 font-mono">{error.userId || 'N/A'}</span>
-                            </div>
-                            {error.userAgent && (
-                              <div className="col-span-2">
-                                <span className="text-[var(--text-secondary)]">User Agent:</span>
-                                <span className="text-[var(--text-primary)] ml-2 text-xs">{error.userAgent}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
+      {crumbs.length > 0 && (
+        <div>
+          <p className="eyebrow mb-1.5">Breadcrumbs · {crumbs.length}</p>
+          <ol className="panel divide-y divide-[var(--border-color)]">
+            {crumbs.map((c, i) => (
+              <li key={i} className="grid grid-cols-[96px_84px_1fr] gap-3 px-3 py-2 text-[12px]">
+                <span className="mono text-[var(--text-muted)] num">
+                  {c.timestamp ? format(new Date(c.timestamp), 'HH:mm:ss.SSS') : ''}
+                </span>
+                <span className="mono text-[var(--text-secondary)]">{c.type}</span>
+                <span className="text-[var(--text-primary)] break-words">
+                  {c.message}
+                  {c.data && Object.keys(c.data).length > 0 && (
+                    <span className="block mono text-[11px] text-[var(--text-muted)] mt-0.5">{JSON.stringify(c.data)}</span>
                   )}
-                </React.Fragment>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
     </div>
+  );
+};
+
+export const ErrorsTable = ({ errors }) => {
+  const [expanded, setExpanded] = useState(null);
+  const [query, setQuery] = useState('');
+  const [severity, setSeverity] = useState('all');
+
+  const rows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return [...(errors || [])]
+      .filter((e) => severity === 'all' || (e.severity || '').toLowerCase() === severity)
+      .filter((e) => !q || `${e.message} ${e.source} ${e.pageUrl} ${e.errorType}`.toLowerCase().includes(q))
+      .sort((a, b) => eventTime(b) - eventTime(a));
+  }, [errors, query, severity]);
+
+  return (
+    <Panel
+      title="Error log"
+      subtitle="Newest first. Select a row for stack trace and breadcrumbs."
+      actions={
+        <>
+          <input
+            className="field h-[28px] w-48 text-[12px]"
+            placeholder="Filter messages"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Filter errors"
+          />
+          <select className="field h-[28px] w-auto text-[12px]" value={severity} onChange={(e) => setSeverity(e.target.value)} aria-label="Severity">
+            <option value="all">All severities</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </>
+      }
+    >
+      {!errors || errors.length === 0 ? (
+        <EmptyState compact icon="check" title="No errors in this range" />
+      ) : rows.length === 0 ? (
+        <EmptyState compact icon="inbox" title="No errors match these filters" />
+      ) : (
+        <div className="overflow-x-auto max-h-[640px] overflow-y-auto">
+          <table className="dtable">
+            <thead>
+              <tr>
+                <th className="w-6" />
+                <th>Message</th>
+                <th>Type</th>
+                <th>Severity</th>
+                <th>Page</th>
+                <th className="r">Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((error, i) => {
+                const id = error.id ?? i;
+                const open = expanded === id;
+                const t = eventTime(error);
+                let path = error.pageUrl;
+                try {
+                  path = new URL(error.pageUrl).pathname;
+                } catch {
+                  /* keep raw */
+                }
+                return (
+                  <React.Fragment key={id}>
+                    <tr className="cursor-pointer" onClick={() => setExpanded(open ? null : id)} aria-expanded={open}>
+                      <td className="pr-0 text-[var(--text-muted)]">
+                        <Icon name={open ? 'chevronDown' : 'chevronRight'} size={14} />
+                      </td>
+                      <td className="max-w-[420px]">
+                        <span className="block truncate text-[var(--text-primary)]" title={error.message}>
+                          {error.message || <span className="text-[var(--text-muted)]">No message</span>}
+                        </span>
+                      </td>
+                      <td><span className="mono text-[12px]">{error.errorType || 'unknown'}</span></td>
+                      <td>
+                        <span className={`chip capitalize ${SEVERITY[(error.severity || '').toLowerCase()] ?? ''}`}>
+                          {error.severity || 'n/a'}
+                        </span>
+                      </td>
+                      <td className="max-w-[220px]"><span className="block truncate" title={error.pageUrl}>{path || '–'}</span></td>
+                      <td className="r whitespace-nowrap">{Number.isNaN(t) ? '–' : format(t, 'MMM d, HH:mm:ss')}</td>
+                    </tr>
+                    {open && (
+                      <tr>
+                        <td colSpan={6} className="p-0">
+                          <Detail error={error} />
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Panel>
   );
 };

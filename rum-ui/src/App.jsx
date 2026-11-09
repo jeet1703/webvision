@@ -8,7 +8,6 @@ import { SessionsView } from './components/SessionsView';
 import { AnalyticsView } from './components/AnalyticsView';
 import { ComparisonView } from './components/ComparisonView';
 import { SettingsView } from './components/SettingsView';
-import './App.css';
 
 function App() {
   const [activeView, setActiveView] = useState('dashboard');

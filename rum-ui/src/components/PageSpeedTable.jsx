@@ -1,95 +1,108 @@
-import React from 'react';
-import { format } from 'date-fns';
+import React, { useMemo, useState } from 'react';
+import { Panel, EmptyState, StatusChip, fmtMs } from './ui/primitives';
 
-export const PageSpeedTable = ({ data }) => {
-  if (!data || data.length === 0) {
-    return (
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-6">
-        <div className="text-center py-12">
-          <img src="/assets/icons/document.svg" alt="Document" className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-          <p className="text-[var(--text-secondary)] text-sm">No page speed data available</p>
-        </div>
-      </div>
-    );
+const loadStatus = (ms) => (ms < 1000 ? 'good' : ms < 3000 ? 'warning' : 'critical');
+const LOAD_LABEL = { good: 'Fast', warning: 'Moderate', critical: 'Slow' };
+
+const Ms = ({ v }) => {
+  if (v == null) return <span className="text-[var(--text-muted)]">–</span>;
+  const f = fmtMs(v);
+  return (
+    <>
+      {f.value}
+      <span className="text-[var(--text-muted)] ml-0.5">{f.unit}</span>
+    </>
+  );
+};
+
+const COLS = [
+  { key: 'pageUrl', label: 'Page' },
+  { key: 'viewCount', label: 'Views', r: true },
+  { key: 'avgLoadTime', label: 'Avg load', r: true },
+  { key: 'minLoadTime', label: 'Min', r: true },
+  { key: 'maxLoadTime', label: 'Max', r: true },
+];
+
+const pathOf = (url) => {
+  try {
+    const u = new URL(url);
+    return { host: u.host, path: u.pathname + u.search };
+  } catch {
+    return { host: '', path: url || '–' };
   }
+};
+
+export const PageSpeedTable = ({ data, limit }) => {
+  const [sort, setSort] = useState({ key: 'avgLoadTime', dir: 'desc' });
+
+  const rows = useMemo(() => {
+    const r = [...(data || [])].sort((a, b) => {
+      const av = a[sort.key] ?? 0;
+      const bv = b[sort.key] ?? 0;
+      const c = typeof av === 'string' ? av.localeCompare(bv) : av - bv;
+      return sort.dir === 'asc' ? c : -c;
+    });
+    return limit ? r.slice(0, limit) : r;
+  }, [data, sort, limit]);
+
+  const maxAvg = Math.max(1, ...(data || []).map((p) => p.avgLoadTime || 0));
+
+  const onSort = (key) =>
+    setSort((s) => ({ key, dir: s.key === key && s.dir === 'desc' ? 'asc' : 'desc' }));
 
   return (
-    <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg overflow-hidden">
-      <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-tertiary)]">
-        <h2 className="text-lg font-semibold text-[var(--text-primary)]">Page Load Speed</h2>
-        <p className="text-xs text-[var(--text-tertiary)] mt-1">Performance metrics by page URL</p>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-[var(--bg-tertiary)] border-b border-[var(--border-color)]">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-                Page URL
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-                Views
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-                Avg Load (ms)
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-                Min (ms)
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-                Max (ms)
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-                Status
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--border-color)]">
-            {data.map((page, index) => {
-              const avgLoad = page.avgLoadTime || 0;
-              const status = avgLoad < 1000 ? 'good' : avgLoad < 3000 ? 'warning' : 'poor';
-              const statusColor = {
-                good: 'text-blue-400 bg-blue-400/10',
-                warning: 'text-yellow-400 bg-yellow-400/10',
-                poor: 'text-red-400 bg-red-400/10',
-              };
-
-              return (
-                <tr key={index} className="hover:bg-[var(--bg-tertiary)] transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-[var(--text-primary)] truncate max-w-md" title={page.pageUrl}>
-                      {page.pageUrl}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-[var(--bg-tertiary)] text-[var(--text-primary)]">
-                      {page.viewCount}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className={`text-sm font-semibold ${status === 'good' ? 'text-blue-400' :
-                        status === 'warning' ? 'text-yellow-400' :
-                          'text-red-400'
-                      }`}>
-                      {avgLoad.toFixed(0)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-center text-sm text-[var(--text-secondary)]">
-                    {page.minLoadTime ? page.minLoadTime.toFixed(0) : '-'}
-                  </td>
-                  <td className="px-6 py-4 text-center text-sm text-[var(--text-secondary)]">
-                    {page.maxLoadTime ? page.maxLoadTime.toFixed(0) : '-'}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-medium ${statusColor[status]}`}>
-                      {status === 'good' ? 'Fast' : status === 'warning' ? 'Moderate' : 'Slow'}
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <Panel
+      title="Page load by URL"
+      subtitle={limit && data?.length > limit ? `Slowest ${limit} of ${data.length} pages` : 'Full page load time per URL'}
+    >
+      {!data || data.length === 0 ? (
+        <EmptyState compact icon="speed" title="No page loads in this range" />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="dtable">
+            <thead>
+              <tr>
+                {COLS.map((c) => (
+                  <th key={c.key} className={c.r ? 'r' : ''}>
+                    <button onClick={() => onSort(c.key)} className="inline-flex items-center gap-1 hover:text-[var(--text-primary)] uppercase">
+                      {c.label}
+                      {sort.key === c.key && <span aria-hidden="true">{sort.dir === 'desc' ? '↓' : '↑'}</span>}
+                    </button>
+                  </th>
+                ))}
+                <th>Rating</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((page, i) => {
+                const avg = page.avgLoadTime || 0;
+                const st = loadStatus(avg);
+                const { host, path } = pathOf(page.pageUrl);
+                return (
+                  <tr key={page.pageUrl || i}>
+                    <td className="max-w-[360px]">
+                      <div className="truncate text-[var(--text-primary)]" title={page.pageUrl}>{path}</div>
+                      {host && <div className="truncate text-[11px] text-[var(--text-muted)]">{host}</div>}
+                    </td>
+                    <td className="r">{(page.viewCount || 0).toLocaleString()}</td>
+                    <td className="r">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="hidden xl:block w-16 h-1 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
+                          <div className="h-full bg-[var(--series-1)]" style={{ width: `${(avg / maxAvg) * 100}%` }} />
+                        </div>
+                        <span className="strong"><Ms v={avg} /></span>
+                      </div>
+                    </td>
+                    <td className="r"><Ms v={page.minLoadTime} /></td>
+                    <td className="r"><Ms v={page.maxLoadTime} /></td>
+                    <td><StatusChip status={st}>{LOAD_LABEL[st]}</StatusChip></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Panel>
   );
 };

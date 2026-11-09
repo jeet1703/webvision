@@ -1,82 +1,49 @@
-import React, { useState } from 'react';
-import { useRUMData } from '../hooks/useRUMData';
-import { Header } from './Header';
-import { ErrorsChart } from './ErrorsChart';
+import React, { useMemo, useState } from 'react';
+import { PageShell } from './PageShell';
+import { ErrorsChart, ErrorsTimeline } from './ErrorsChart';
 import { ErrorsTable } from './ErrorsTable';
-import { MetricsCard } from './MetricsCard';
-import { LoadingSpinner } from './LoadingSpinner';
+import { StatTile, fmtInt } from './ui/primitives';
+import { useRangeData } from './Dashboard';
 
 export const ErrorsView = () => {
   const [timeRange, setTimeRange] = useState(3600000);
-  const { errors, loading } = useRUMData(timeRange);
+  const data = useRangeData(timeRange);
+  const { errors, range } = data;
 
-  const errorStats = {
-    total: errors.length,
-    byType: errors.reduce((acc, err) => {
-      const type = err.errorType || 'Unknown';
-      acc[type] = (acc[type] || 0) + 1;
-      return acc;
-    }, {}),
-    critical: errors.filter(e => e.severity === 'critical').length,
-    high: errors.filter(e => e.severity === 'high').length,
-  };
+  const s = useMemo(() => {
+    const sev = (x) => errors.filter((e) => (e.severity || '').toLowerCase() === x).length;
+    return {
+      total: errors.length,
+      critical: sev('critical'),
+      high: sev('high'),
+      sessions: new Set(errors.map((e) => e.sessionId).filter(Boolean)).size,
+      types: new Set(errors.map((e) => e.errorType || 'unknown')).size,
+    };
+  }, [errors]);
 
   return (
-    <div className="min-h-screen">
-      <Header
-        title="Errors"
-        subtitle="Error tracking and analysis"
-        timeRange={timeRange}
-        setTimeRange={setTimeRange}
-      />
-      <div className="p-6">
-        {loading ? (
-          <LoadingSpinner />
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <MetricsCard
-                title="Total Errors"
-                value={errorStats.total}
-                unit=""
-                status={errorStats.total === 0 ? 'good' : 'poor'}
-                iconSrc="/assets/icons/error.svg"
-              />
-
-              <MetricsCard
-                title="Critical"
-                value={errorStats.critical}
-                unit=""
-                status={errorStats.critical === 0 ? 'good' : 'poor'}
-                iconSrc="/assets/icons/alert.svg"
-              />
-
-              <MetricsCard
-                title="High Severity"
-                value={errorStats.high}
-                unit=""
-                status={errorStats.high === 0 ? 'good' : 'needs-improvement'}
-                iconSrc="/assets/icons/warning.svg"
-              />
-
-              <MetricsCard
-                title="Error Types"
-                value={Object.keys(errorStats.byType).length}
-                unit=""
-                status="good"
-                iconSrc="/assets/icons/graph.svg"
-              />
-            </div>
-
-            <div className="mb-6">
-              <ErrorsChart data={errors} />
-            </div>
-
-            <ErrorsTable errors={errors} />
-          </>
-        )}
+    <PageShell
+      title="Errors"
+      subtitle="JavaScript errors and rejected promises captured by the SDK"
+      timeRange={timeRange}
+      setTimeRange={setTimeRange}
+      data={data}
+    >
+      <div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
+        <StatTile label="Total errors" value={fmtInt(s.total)} status={s.total ? 'warning' : 'good'} hint={`${s.types} distinct types`} />
+        <StatTile label="Critical" value={fmtInt(s.critical)} status={s.critical ? 'critical' : 'good'} hint="Severity: critical" />
+        <StatTile label="High" value={fmtInt(s.high)} status={s.high ? 'warning' : 'good'} hint="Severity: high" />
+        <StatTile label="Affected sessions" value={fmtInt(s.sessions)} hint="Sessions with one or more errors" />
       </div>
-    </div>
+
+      <div className="grid gap-3 grid-cols-1 xl:grid-cols-3">
+        <div className="xl:col-span-2">
+          <ErrorsTimeline data={errors} range={range} height={220} />
+        </div>
+        <ErrorsChart data={errors} />
+      </div>
+
+      <ErrorsTable errors={errors} />
+    </PageShell>
   );
 };
-

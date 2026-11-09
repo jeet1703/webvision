@@ -1,116 +1,146 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLiveMode } from '../contexts/LiveModeContext';
+import { Icon } from './ui/Icon';
 
-export const Sidebar = ({ activeView, setActiveView }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+const NAV = [
+  {
+    group: 'Monitor',
+    items: [
+      { id: 'dashboard', label: 'Overview', icon: 'overview' },
+      { id: 'webvitals', label: 'Web Vitals', icon: 'vitals' },
+      { id: 'pagespeed', label: 'Page Speed', icon: 'speed' },
+      { id: 'errors', label: 'Errors', icon: 'errors' },
+      { id: 'sessions', label: 'Sessions', icon: 'sessions' },
+      { id: 'analytics', label: 'Analytics', icon: 'analytics' },
+    ],
+  },
+  {
+    group: 'Tools',
+    items: [{ id: 'comparison', label: 'API Compare', icon: 'compare' }],
+  },
+];
+
+const NavButton = ({ item, active, collapsed, onClick }) => (
+  <button
+    onClick={onClick}
+    title={collapsed ? item.label : undefined}
+    aria-current={active ? 'page' : undefined}
+    className={`group relative w-full flex items-center gap-2.5 h-8 rounded-md text-[13px] transition-colors ${
+      collapsed ? 'justify-center px-0' : 'px-2.5'
+    } ${
+      active
+        ? 'bg-[var(--bg-hover)] text-[var(--text-primary)] font-medium'
+        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
+    }`}
+  >
+    {active && <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full bg-[var(--accent)]" />}
+    <Icon name={item.icon} size={16} className={active ? 'text-[var(--accent)]' : ''} />
+    {!collapsed && <span className="truncate">{item.label}</span>}
+  </button>
+);
+
+export const Sidebar = ({ activeView, setActiveView, collapsed, onToggle }) => {
   const { theme, toggleTheme } = useTheme();
   const { isLive, toggleLiveMode } = useLiveMode();
 
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: 'dashboard.svg' },
-    { id: 'webvitals', label: 'Web Vitals', icon: 'health.svg' },
-    { id: 'errors', label: 'Errors', icon: 'error.svg' },
-    { id: 'pagespeed', label: 'Page Speed', icon: 'speed.svg' },
-    { id: 'sessions', label: 'Sessions', icon: 'users.svg' },
-    { id: 'analytics', label: 'Analytics', icon: 'graph.svg' },
-    { id: 'comparison', label: 'Comparison', icon: 'search.svg' },
-    { id: 'settings', label: 'Settings', icon: 'settings.svg' },
-  ];
-
   return (
-    <div className={`fixed left-0 top-0 h-full bg-[var(--bg-secondary)] border-r border-[var(--border-color)] transition-all duration-200 z-50 ${isCollapsed ? 'w-16' : 'w-64'}`}>
-      {/* Logo/Header */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-[var(--border-color)]">
-        {!isCollapsed && (
-          <div className="flex items-center gap-2 flex-1">
-            <p className='text-xl font-semibold text-[var(--text-primary)]'>
-              Web<span className="text-indigo-500 font-bold">Vizion</span>
-            </p>
-          </div>
-        )}
-        {isCollapsed && (
-          <div className="flex items-center justify-center flex-1">
-            <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">PM</span>
+    <aside
+      className={`shrink-0 h-full flex flex-col bg-[var(--bg-secondary)] border-r border-[var(--border-color)] transition-[width] duration-200 ${
+        collapsed ? 'w-[56px]' : 'w-[232px]'
+      }`}
+    >
+      {/* Brand */}
+      <div className={`h-14 flex items-center border-b border-[var(--border-color)] ${collapsed ? 'justify-center' : 'px-4 justify-between'}`}>
+        {!collapsed && (
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-6 h-6 rounded-md bg-[var(--accent)] text-white flex items-center justify-center">
+              <Icon name="vitals" size={14} strokeWidth={2.25} />
             </div>
+            <span className="text-[14px] font-semibold tracking-tight text-[var(--text-primary)]">WebVizion</span>
           </div>
         )}
+        <button
+          onClick={onToggle}
+          className="w-7 h-7 rounded-md flex items-center justify-center text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <Icon name="sidebar" size={16} />
+        </button>
       </div>
 
-      {/* Navigation Menu */}
-      <nav className="flex-1 overflow-y-auto py-4 px-2">
-        {menuItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setActiveView(item.id)}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 mb-1 rounded-lg text-left transition-colors ${activeView === item.id
-              ? 'bg-indigo-500/15 text-indigo-400 border-l-2 border-indigo-500'
-              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
-              }`}
-            title={isCollapsed ? item.label : ''}
-          >
-            <img
-              src={`/assets/icons/${item.icon}`}
-              alt={item.label}
-              className="w-5 h-5 flex-shrink-0 opacity-80"
-            />
-            {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}
-          </button>
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-4">
+        {NAV.map((section) => (
+          <div key={section.group}>
+            {!collapsed && <p className="px-2.5 mb-1.5 eyebrow text-[10px]">{section.group}</p>}
+            <div className="space-y-0.5">
+              {section.items.map((item) => (
+                <NavButton
+                  key={item.id}
+                  item={item}
+                  active={activeView === item.id}
+                  collapsed={collapsed}
+                  onClick={() => setActiveView(item.id)}
+                />
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
 
-      {/* Footer Controls */}
-      <div className="p-3 border-t border-[var(--border-color)]">
-        {/* Live Mode Toggle */}
+      {/* Footer */}
+      <div className="px-2 py-3 border-t border-[var(--border-color)] space-y-0.5">
         <button
           onClick={toggleLiveMode}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 mb-2 rounded-lg transition-colors ${isLive
-            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-            : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
-          title={isCollapsed ? (isLive ? 'Live Mode On' : 'Live Mode Off') : ''}
+          title={collapsed ? (isLive ? 'Pause live updates' : 'Resume live updates') : undefined}
+          className={`w-full flex items-center gap-2.5 h-8 rounded-md text-[13px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] ${
+            collapsed ? 'justify-center' : 'px-2.5'
+          }`}
         >
-          <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'}`}></div>
-          {!isCollapsed && (
-            <span className="text-sm font-medium">
-              {isLive ? 'Live Mode' : 'Paused'}
-            </span>
+          <span className="w-4 flex justify-center">
+            <span className={`dot ${isLive ? 'bg-[var(--good)] live-dot' : 'bg-[var(--text-muted)]'}`} />
+          </span>
+          {!collapsed && (
+            <>
+              <span className="flex-1 text-left">{isLive ? 'Live' : 'Paused'}</span>
+              <Icon name={isLive ? 'pause' : 'play'} size={13} className="text-[var(--text-muted)]" />
+            </>
           )}
         </button>
 
-        {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className="w-full flex items-center gap-3 px-3 py-2.5 mb-2 rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-          title={isCollapsed ? (theme === 'dark' ? 'Light Mode' : 'Dark Mode') : ''}
+          title={collapsed ? 'Toggle theme' : undefined}
+          className={`w-full flex items-center gap-2.5 h-8 rounded-md text-[13px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] ${
+            collapsed ? 'justify-center' : 'px-2.5'
+          }`}
         >
-          <img
-            src={theme === 'dark' ? '/assets/icons/sun.svg' : '/assets/icons/moon.svg'}
-            alt={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-            className="w-5 h-5 opacity-80"
-          />
-          {!isCollapsed && (
-            <span className="text-sm font-medium">
-              {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-            </span>
-          )}
+          <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} />
+          {!collapsed && <span>{theme === 'dark' ? 'Light theme' : 'Dark theme'}</span>}
         </button>
 
-        {/* Demo App Link */}
+        <NavButton
+          item={{ id: 'settings', label: 'Settings', icon: 'settings' }}
+          active={activeView === 'settings'}
+          collapsed={collapsed}
+          onClick={() => setActiveView('settings')}
+        />
+
         <a
           href="https://webvizion-demo.netlify.app/"
           target="_blank"
           rel="noopener noreferrer"
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition-colors border border-indigo-500/20"
-          title={isCollapsed ? 'Open Demo App' : ''}
+          title={collapsed ? 'Open demo app' : undefined}
+          className={`w-full flex items-center gap-2.5 h-8 rounded-md text-[13px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] ${
+            collapsed ? 'justify-center' : 'px-2.5'
+          }`}
         >
-          <span className="text-base">🚀</span>
-          {!isCollapsed && (
-            <span className="text-sm font-medium">Demo App</span>
-          )}
+          <Icon name="external" size={16} />
+          {!collapsed && <span>Demo app</span>}
         </a>
       </div>
-    </div>
+    </aside>
   );
 };

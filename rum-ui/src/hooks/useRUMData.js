@@ -2,7 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { rumAPI } from '../services/apiService';
 import { useLiveMode } from '../contexts/LiveModeContext';
 
-export const useRUMData = (timeRangeMs = 3600000) => { // 1 hour default
+/**
+ * @param timeRange number (rolling window in ms, ending now) or { start, end } (absolute, ms)
+ */
+export const useRUMData = (timeRange = 3600000) => {
   const { isLive, refreshInterval } = useLiveMode();
   const isFirstLoad = useRef(true);
   const [data, setData] = useState({
@@ -17,25 +20,23 @@ export const useRUMData = (timeRangeMs = 3600000) => { // 1 hour default
     lastUpdate: null,
   });
 
+  const isAbsolute = typeof timeRange === 'object' && timeRange !== null;
+  const key = isAbsolute ? `${timeRange.start}-${timeRange.end}` : String(timeRange);
+
   useEffect(() => {
+    let cancelled = false;
+    isFirstLoad.current = true;
+
     const fetchData = async () => {
       try {
-        // Only show loading on first load, not on refreshes
         if (isFirstLoad.current) {
-          setData(prev => ({ ...prev, loading: true, error: null }));
+          setData((prev) => ({ ...prev, loading: true, error: null }));
         }
 
-        const endTime = Date.now();
-        const startTime = endTime - timeRangeMs;
+        const endTime = isAbsolute ? timeRange.end : Date.now();
+        const startTime = isAbsolute ? timeRange.start : endTime - timeRange;
 
-        const [
-          vitalsRes,
-          errorsRes,
-          pageViewsRes,
-          pageSpeedRes,
-          pageSpeedStatsRes,
-          statsRes
-        ] = await Promise.all([
+        const [vitalsRes, errorsRes, pageViewsRes, pageSpeedRes, pageSpeedStatsRes, statsRes] = await Promise.all([
           rumAPI.getWebVitals(startTime, endTime),
           rumAPI.getErrors(startTime, endTime),
           rumAPI.getPageViews(startTime, endTime),
@@ -44,6 +45,7 @@ export const useRUMData = (timeRangeMs = 3600000) => { // 1 hour default
           rumAPI.getDashboardStats(startTime, endTime),
         ]);
 
+        if (cancelled) return;
         setData({
           webVitals: vitalsRes || [],
           errors: errorsRes || [],
@@ -55,25 +57,31 @@ export const useRUMData = (timeRangeMs = 3600000) => { // 1 hour default
           error: null,
           lastUpdate: new Date(),
         });
-
         isFirstLoad.current = false;
       } catch (err) {
-        setData(prev => ({
+        if (cancelled) return;
+        setData((prev) => ({
           ...prev,
           loading: false,
-          error: err.message || 'Failed to fetch data',
+          error: err.message || 'Request failed',
         }));
       }
     };
 
     fetchData();
 
-    // Refetch based on live mode and refresh interval
     if (isLive) {
       const interval = setInterval(fetchData, refreshInterval);
-      return () => clearInterval(interval);
+      return () => {
+        cancelled = true;
+        clearInterval(interval);
+      };
     }
-  }, [timeRangeMs, isLive, refreshInterval]);
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, isLive, refreshInterval]);
 
   return data;
 };

@@ -1,58 +1,41 @@
-import React, { useState } from 'react';
-import { useRUMData } from '../hooks/useRUMData';
-import { Header } from './Header';
-import { SessionsTable } from './SessionsTable';
-import { MetricsCard } from './MetricsCard';
-import { LoadingSpinner } from './LoadingSpinner';
+import React, { useMemo, useState } from 'react';
+import { PageShell } from './PageShell';
+import { SessionsTable, buildSessions } from './SessionsTable';
+import { StatTile, fmtInt } from './ui/primitives';
+import { useRangeData } from './Dashboard';
 
 export const SessionsView = () => {
   const [timeRange, setTimeRange] = useState(3600000);
-  const { webVitals, errors, stats, loading } = useRUMData(timeRange);
+  const data = useRangeData(timeRange);
+  const { webVitals, errors, stats } = data;
 
-  const sessions = new Set(webVitals.map(v => v.sessionId));
-  const uniqueUsers = stats.uniqueUsers || 0;
+  const s = useMemo(() => {
+    const sessions = buildSessions(webVitals, errors);
+    const withErrors = sessions.filter((x) => x.errors > 0).length;
+    const pages = sessions.reduce((sum, x) => sum + x.pages.size, 0);
+    return { count: sessions.length, withErrors, pagesPer: sessions.length ? pages / sessions.length : 0 };
+  }, [webVitals, errors]);
 
   return (
-    <div className="min-h-screen">
-      <Header 
-        title="User Sessions" 
-        subtitle="Active user sessions and activity"
-        timeRange={timeRange}
-        setTimeRange={setTimeRange}
-      />
-      <div className="p-6">
-        {loading ? (
-          <LoadingSpinner />
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-              <MetricsCard
-                title="Active Sessions"
-                value={sessions.size}
-                unit=""
-                status="good"
-                iconSrc="/assets/icons/users.svg"
-              />
-              <MetricsCard
-                title="Unique Users"
-                value={uniqueUsers}
-                unit=""
-                status="good"
-                iconSrc="/assets/icons/user.svg"
-              />
-              <MetricsCard
-                title="Total Events"
-                value={webVitals.length + errors.length}
-                unit=""
-                status="good"
-                iconSrc="/assets/icons/graph.svg"
-              />
-            </div>
-            <SessionsTable webVitals={webVitals} errors={errors} />
-          </>
-        )}
+    <PageShell
+      title="Sessions"
+      subtitle="Activity grouped by browser session"
+      timeRange={timeRange}
+      setTimeRange={setTimeRange}
+      data={data}
+    >
+      <div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
+        <StatTile label="Sessions" value={fmtInt(s.count)} hint="With at least one vital or error" />
+        <StatTile label="Unique users" value={fmtInt(stats.uniqueUsers ?? 0)} hint="Reported by the API" />
+        <StatTile label="Pages per session" value={s.pagesPer.toFixed(1)} hint="Distinct URLs" />
+        <StatTile
+          label="Sessions with errors"
+          value={fmtInt(s.withErrors)}
+          status={s.withErrors ? 'warning' : 'good'}
+          hint={s.count ? `${((s.withErrors / s.count) * 100).toFixed(0)}% of sessions` : ' '}
+        />
       </div>
-    </div>
+      <SessionsTable webVitals={webVitals} errors={errors} pageSize={20} title="All sessions" />
+    </PageShell>
   );
 };
-

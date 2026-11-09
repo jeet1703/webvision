@@ -81,8 +81,9 @@ export class RUMWrapper {
     }
   }
 
+  /** Sends queued events. Resolves to { count, ok } so callers can report delivery. */
   async flush() {
-    if (this.eventsQueue.length === 0) return;
+    if (this.eventsQueue.length === 0) return { count: 0, ok: true };
 
     const events = [...this.eventsQueue];
     this.eventsQueue = [];
@@ -98,10 +99,13 @@ export class RUMWrapper {
 
       if (!response.ok) {
         console.error('RUM: Failed to send events', response.statusText);
-        // Re-queue events on failure (optional)
       }
+      this.onFlush?.({ count: events.length, ok: response.ok });
+      return { count: events.length, ok: response.ok };
     } catch (error) {
       console.error('RUM: Error sending events', error);
+      this.onFlush?.({ count: events.length, ok: false });
+      return { count: events.length, ok: false };
     }
   }
 

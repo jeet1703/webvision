@@ -1,118 +1,99 @@
 import React, { useMemo } from 'react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  Cell,
-} from 'recharts';
-import { useTheme } from '../contexts/ThemeContext';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { format } from 'date-fns';
+import { useChartTheme } from '../hooks/useChartTheme';
+import { countSeries } from '../lib/metrics';
+import { Panel, EmptyState } from './ui/primitives';
+import { tickFormatter } from './WebVitalsChart';
 
-const COLORS = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16'];
-
-const CustomTooltip = ({ active, payload }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-[var(--bg-secondary)] p-3 rounded border border-[var(--border-color)] shadow-xl">
-        <p className="font-semibold text-[var(--text-primary)] mb-2 text-sm">
-          {payload[0].payload.type}
-        </p>
-        <p className="text-xs text-red-400">
-          <span className="font-medium">Count:</span> {payload[0].value}
-        </p>
-      </div>
-    );
-  }
-  return null;
+const CountTooltip = ({ active, payload }) => {
+  if (!active || !payload?.length) return null;
+  const p = payload[0].payload;
+  return (
+    <div className="panel px-3 py-2 text-[12px]" style={{ boxShadow: 'var(--shadow-pop)' }}>
+      <p className="text-[var(--text-tertiary)] num">{format(new Date(p.t), 'MMM d, HH:mm')}</p>
+      <p className="mt-0.5 text-[var(--text-primary)] font-medium num">
+        {p.count} {p.count === 1 ? 'error' : 'errors'}
+      </p>
+    </div>
+  );
 };
 
-export const ErrorsChart = ({ data }) => {
-  const { theme } = useTheme();
-  const gridColor = theme === 'dark' ? '#334155' : '#e2e8f0';
-  const axisColor = theme === 'dark' ? '#94a3b8' : '#64748b';
-  const tickColor = theme === 'dark' ? '#cbd5e1' : '#475569';
-
-  const chartData = useMemo(() => {
-    if (!data || data.length === 0) return [];
-
-    const grouped = {};
-
-    data.forEach(item => {
-      const key = item.errorType || 'Unknown';
-      if (!grouped[key]) {
-        grouped[key] = { type: key, count: 0 };
-      }
-      grouped[key].count += 1;
-    });
-
-    return Object.values(grouped).sort((a, b) => b.count - a.count);
-  }, [data]);
-
-  if (chartData.length === 0) {
-    return (
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-8">
-        <div className="text-center py-12">
-          <img src="/assets/icons/checkmark.svg" alt="No errors" className="w-16 h-16 mx-auto mb-4 text-blue-400" />
-          <p className="text-[var(--text-secondary)] text-sm">No errors recorded</p>
-          <p className="text-[var(--text-tertiary)] text-xs mt-2">
-            Great! Your application is error-free
-          </p>
-        </div>
-      </div>
-    );
-  }
+/** Error volume over time. */
+export const ErrorsTimeline = ({ data, range, height = 180 }) => {
+  const colors = useChartTheme();
+  const series = useMemo(() => countSeries(data || [], range), [data, range]);
 
   return (
-    <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg overflow-hidden">
-      <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-tertiary)]">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
-              <img src="/assets/icons/error.svg" alt="Errors" className="w-5 h-5" />
-              Errors by Type
-            </h2>
-            <p className="text-xs text-[var(--text-tertiary)] mt-1">
-              Error distribution and frequency
-            </p>
-          </div>
-          <div className="bg-red-500/10 text-red-400 px-3 py-1 rounded text-xs font-semibold border border-red-500/30">
-            {data.length} Total
-          </div>
+    <Panel
+      title="Error volume"
+      subtitle="Errors captured per interval"
+      actions={<span className="chip num">{(data || []).length} total</span>}
+    >
+      {!data || data.length === 0 ? (
+        <EmptyState compact icon="check" title="No errors in this range" />
+      ) : (
+        <div style={{ height }} className="px-1 py-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={series} margin={{ top: 8, right: 16, left: 0, bottom: 0 }} barCategoryGap={2}>
+              <CartesianGrid vertical={false} stroke={colors.grid} />
+              <XAxis
+                dataKey="t"
+                tickFormatter={tickFormatter(range)}
+                tick={{ fill: colors['text-muted'], fontSize: 11 }}
+                axisLine={{ stroke: colors.axis }}
+                tickLine={false}
+                minTickGap={40}
+              />
+              <YAxis width={36} allowDecimals={false} tick={{ fill: colors['text-muted'], fontSize: 11 }} axisLine={false} tickLine={false} />
+              <Tooltip content={<CountTooltip />} cursor={{ fill: colors.grid }} />
+              <Bar dataKey="count" fill={colors['series-2']} radius={[3, 3, 0, 0]} isAnimationActive={false} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
-      </div>
+      )}
+    </Panel>
+  );
+};
 
-      <div className="p-6">
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-            <XAxis
-              dataKey="type"
-              stroke={axisColor}
-              style={{ fontSize: '11px' }}
-              tick={{ fill: tickColor }}
-              angle={-45}
-              textAnchor="end"
-              height={80}
-            />
-            <YAxis
-              stroke={axisColor}
-              style={{ fontSize: '11px' }}
-              tick={{ fill: tickColor }}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend wrapperStyle={{ color: tickColor }} />
-            <Bar dataKey="count" radius={[8, 8, 0, 0]}>
-              {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
+/** Errors grouped by type as a ranked list with inline bars. */
+export const ErrorsChart = ({ data }) => {
+  const rows = useMemo(() => {
+    const grouped = {};
+    (data || []).forEach((e) => {
+      const k = e.errorType || 'unknown';
+      grouped[k] = (grouped[k] || 0) + 1;
+    });
+    return Object.entries(grouped)
+      .map(([type, count]) => ({ type, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [data]);
+
+  const max = rows[0]?.count || 1;
+  const total = (data || []).length;
+
+  return (
+    <Panel title="Errors by type" subtitle="Share of all captured errors">
+      {rows.length === 0 ? (
+        <EmptyState compact icon="check" title="No errors in this range" />
+      ) : (
+        <ul className="px-4 py-3 space-y-3">
+          {rows.map((r) => (
+            <li key={r.type}>
+              <div className="flex items-baseline justify-between gap-3 text-[13px]">
+                <span className="mono text-[12px] text-[var(--text-primary)] truncate">{r.type}</span>
+                <span className="num text-[var(--text-secondary)]">
+                  {r.count}
+                  <span className="ml-2 text-[var(--text-muted)]">{Math.round((r.count / total) * 100)}%</span>
+                </span>
+              </div>
+              <div className="mt-1.5 h-1.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
+                <div className="h-full rounded-full bg-[var(--series-2)]" style={{ width: `${(r.count / max) * 100}%` }} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
   );
 };

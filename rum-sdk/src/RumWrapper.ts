@@ -36,6 +36,18 @@ export class RUMWrapper {
   private previousPagePath: string = '';
   private clickHistory: Array<{element: string, timestamp: number}> = [];
 
+  // Delivery state
+  private readonly isBrowser: boolean = typeof window !== 'undefined' && typeof document !== 'undefined';
+  private originalFetch: typeof fetch | null = null;
+  private consecutiveFailures: number = 0;
+  private nextFlushAllowedAt: number = 0;
+  private static readonly MAX_QUEUE = 500;
+  private readonly onPageHide = (): void => {
+    if (document.visibilityState === 'hidden' || !document.visibilityState) {
+      this.flushEvents(true);
+    }
+  };
+
   constructor(config: SDKConfig) {
     // Set defaults for optional config
     this.config = {
@@ -93,6 +105,13 @@ export class RUMWrapper {
       },
     };
 
+    if (!this.isBrowser) {
+      // Server-side render or non-browser runtime: stay inert.
+      this.userId = 'anonymous';
+      this.sessionId = 'ssr';
+      return;
+    }
+
     // Initialize IDs
     this.userId = this.getOrCreateUserId();
     this.sessionId = this.generateSessionId();
@@ -111,6 +130,9 @@ export class RUMWrapper {
    * Public API: Start monitoring
    */
   public start(): void {
+    if (!this.isBrowser) {
+      return;
+    }
     if (this.isRunning) {
       this.log('Wrapper already running');
       return;
@@ -174,8 +196,10 @@ export class RUMWrapper {
       this.initCSPViolationTracking();
     }
 
-    // Start periodic flush
+    // Start periodic flush, and send what is left when the page is hidden or unloaded
     this.startPeriodicFlush();
+    document.addEventListener('visibilitychange', this.onPageHide);
+    window.addEventListener('pagehide', this.onPageHide);
   }
 
   /**
@@ -204,8 +228,15 @@ export class RUMWrapper {
     this.observers.forEach(observer => observer.disconnect());
     this.observers = [];
 
+    // Restore the page's fetch and remove lifecycle listeners
+    if (this.originalFetch) {
+      window.fetch = this.originalFetch;
+    }
+    document.removeEventListener('visibilitychange', this.onPageHide);
+    window.removeEventListener('pagehide', this.onPageHide);
+
     // Flush remaining events
-    this.flushEvents();
+    this.flushEvents(true);
   }
 
   /**
@@ -938,11 +969,17 @@ export class RUMWrapper {
   // ========== NETWORK ERROR TRACKING ==========
   
   private initNetworkErrorTracking(): void {
-    const originalFetch = window.fetch;
+    const originalFetch = this.getNativeFetch();
+    this.originalFetch = originalFetch;
     
     window.fetch = async (resource: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       const startTime = performance.now();
       const url = typeof resource === 'string' ? resource : resource instanceof URL ? resource.href : (resource as Request).url;
+
+      // Never report on the SDK's own delivery requests
+      if (url.startsWith(this.config.backendUrl)) {
+        return originalFetch(resource, init);
+      }
       
       try {
         const response = await originalFetch(resource, init);
@@ -1044,6 +1081,10 @@ export class RUMWrapper {
 
   private enqueueEvent(event: AllRUMEvents): void {
     this.eventsQueue.push(event);
+    if (this.eventsQueue.length > RUMWrapper.MAX_QUEUE) {
+      // Drop the oldest events rather than grow without bound while the backend is unreachable
+      this.eventsQueue.splice(0, this.eventsQueue.length - RUMWrapper.MAX_QUEUE);
+    }
     this.checkBatchSize();
   }
 
@@ -1060,33 +1101,55 @@ export class RUMWrapper {
     }, this.config.flushIntervalMs);
   }
 
-  private async flushEvents(): Promise<void> {
+  private getNativeFetch(): typeof fetch {
+    return this.originalFetch ?? window.fetch.bind(window);
+  }
+
+  /**
+   * Sends queued events.
+   * @param final true when the page is being hidden or unloaded: uses keepalive and ignores backoff.
+   */
+  private async flushEvents(final: boolean = false): Promise<void> {
     if (this.eventsQueue.length === 0) {
       return;
     }
+    if (!final && Date.now() < this.nextFlushAllowedAt) {
+      return;
+    }
 
-    const batch = [...this.eventsQueue];
+    // keepalive requests are capped at 64 KB by browsers, so send the newest slice on unload
+    const batch = final ? this.eventsQueue.slice(-this.config.batchSize) : [...this.eventsQueue];
     this.eventsQueue = [];
 
     this.log(`Flushing ${batch.length} events to backend`);
 
     try {
-      const response = await fetch(this.config.backendUrl, {
+      const response = await this.getNativeFetch()(this.config.backendUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(batch),
+        keepalive: final,
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
+      this.consecutiveFailures = 0;
+      this.nextFlushAllowedAt = 0;
       this.log('Events sent successfully');
     } catch (error) {
       this.log('Error sending events:', error);
-      this.eventsQueue = batch.concat(this.eventsQueue);
+      if (final) {
+        return;
+      }
+      // Re-queue and back off exponentially: 1x, 2x, 4x ... the flush interval, capped at 5 minutes
+      this.eventsQueue = batch.concat(this.eventsQueue).slice(-RUMWrapper.MAX_QUEUE);
+      this.consecutiveFailures += 1;
+      const delay = Math.min(300000, this.config.flushIntervalMs * 2 ** (this.consecutiveFailures - 1));
+      this.nextFlushAllowedAt = Date.now() + delay;
     }
   }
 

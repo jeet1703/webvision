@@ -1,59 +1,51 @@
-import React, { useState } from 'react';
-import { useRUMData } from '../hooks/useRUMData';
-import { Header } from './Header';
+import React, { useMemo, useState } from 'react';
+import { PageShell } from './PageShell';
 import { PageSpeedTable } from './PageSpeedTable';
-import { MetricsCard } from './MetricsCard';
-import { LoadingSpinner } from './LoadingSpinner';
+import { StatTile, fmtInt, fmtMs } from './ui/primitives';
+import { useRangeData } from './Dashboard';
 
 export const PageSpeedView = () => {
   const [timeRange, setTimeRange] = useState(3600000);
-  const { pageSpeedStats, stats, loading } = useRUMData(timeRange);
+  const data = useRangeData(timeRange);
+  const { pageSpeedStats, stats } = data;
 
-  const avgLoadTime = stats.avgPageLoadTime || 0;
-  const totalPages = pageSpeedStats.length;
-  const totalViews = pageSpeedStats.reduce((sum, page) => sum + (page.viewCount || 0), 0);
+  const s = useMemo(() => {
+    const views = pageSpeedStats.reduce((sum, p) => sum + (p.viewCount || 0), 0);
+    const slowest = [...pageSpeedStats].sort((a, b) => (b.avgLoadTime || 0) - (a.avgLoadTime || 0))[0];
+    const slow = pageSpeedStats.filter((p) => (p.avgLoadTime || 0) >= 3000).length;
+    return { views, slowest, slow };
+  }, [pageSpeedStats]);
+
+  const avg = fmtMs(stats.avgPageLoadTime || null);
+  const slowestMs = fmtMs(s.slowest?.avgLoadTime ?? null);
+  let slowestPath = s.slowest?.pageUrl;
+  try {
+    slowestPath = new URL(slowestPath).pathname;
+  } catch {
+    /* keep raw */
+  }
 
   return (
-    <div className="min-h-screen">
-      <Header 
-        title="Page Speed" 
-        subtitle="Page load performance by URL"
-        timeRange={timeRange}
-        setTimeRange={setTimeRange}
-      />
-      <div className="p-6">
-        {loading ? (
-          <LoadingSpinner />
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <MetricsCard
-                title="Avg Load Time"
-                value={avgLoadTime}
-                unit="ms"
-                status={avgLoadTime < 1000 ? 'good' : avgLoadTime < 3000 ? 'needs-improvement' : 'poor'}
-                iconSrc="/assets/icons/lightning.svg"
-              />
-              <MetricsCard
-                title="Total Pages"
-                value={totalPages}
-                unit=""
-                status="good"
-                iconSrc="/assets/icons/document.svg"
-              />
-              <MetricsCard
-                title="Total Views"
-                value={totalViews}
-                unit=""
-                status="good"
-                iconSrc="/assets/icons/eye.svg"
-              />
-            </div>
-            <PageSpeedTable data={pageSpeedStats} />
-          </>
-        )}
+    <PageShell
+      title="Page Speed"
+      subtitle="Full page load time per URL"
+      timeRange={timeRange}
+      setTimeRange={setTimeRange}
+      data={data}
+    >
+      <div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
+        <StatTile
+          label="Avg page load"
+          value={avg.value}
+          unit={avg.unit}
+          status={stats.avgPageLoadTime == null ? undefined : stats.avgPageLoadTime < 1000 ? 'good' : stats.avgPageLoadTime < 3000 ? 'warning' : 'critical'}
+          hint="Fast < 1 s · Slow ≥ 3 s"
+        />
+        <StatTile label="Slowest page" value={slowestMs.value} unit={slowestMs.unit} hint={slowestPath || 'No pages'} />
+        <StatTile label="Pages tracked" value={fmtInt(pageSpeedStats.length)} hint={`${s.slow} slow`} status={s.slow ? 'warning' : pageSpeedStats.length ? 'good' : undefined} />
+        <StatTile label="Page loads" value={fmtInt(s.views)} hint="Across all tracked pages" />
       </div>
-    </div>
+      <PageSpeedTable data={pageSpeedStats} />
+    </PageShell>
   );
 };
-

@@ -16,7 +16,10 @@ export const LiveModeProvider = ({ children }) => {
     return saved ? saved === 'true' : true;
   });
 
-  const [refreshInterval, setRefreshInterval] = useState(10000); // 10 seconds default
+  const [refreshInterval, setRefreshInterval] = useState(() => {
+    const saved = Number(localStorage.getItem('rum-refresh-interval'));
+    return saved > 0 ? saved : 10000;
+  });
 
   const toggleLiveMode = () => {
     setIsLive(prev => {
